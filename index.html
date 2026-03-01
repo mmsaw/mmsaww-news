@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMSAWW NEWS</title>
+
+<style>
+:root{
+  --bg:#F7F7F5;--bg2:#EFEFED;--surface:#FFFFFF;--border:#E2E2DE;--border2:#CACAC4;
+  --text:#111111;--text2:#555550;--text3:#99998E;
+  --accent:#B8960C;--accent-bg:#F8F2DC;--accent2:#8B6F00;
+  --red:#C0392B;--green:#27AE60;--blue:#2471A3;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.04);
+  --shadow-card:0 1px 2px rgba(0,0,0,.06);
+  --r:4px;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+  --head:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+  --mono:"SF Mono","Menlo","Monaco",monospace;
+}
+[data-theme=dark]{
+  --bg:#0C0C0E;--bg2:#161410;--surface:#111009;--border:#2A2818;--border2:#3A3520;
+  --text:#E8D5A3;--text2:#8A7E68;--text3:#5A5030;
+  --accent:#C9A84C;--accent-bg:rgba(201,168,76,.1);--accent2:#E8D5A3;
+  --red:#F87171;--green:#34D399;--blue:#60A5FA;
+  --shadow:none;--shadow-card:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px;min-height:100vh;transition:background .2s,color .2s}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* HEADER */
+.hdr{background:var(--surface);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
+.hdr-brand{display:flex;align-items:center;padding:0 28px;border-bottom:1px solid var(--border)}
+.logo-wrap{display:flex;align-items:baseline;gap:0;padding:14px 0 10px;flex:1}
+.logo{font-family:var(--head);font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text);text-transform:uppercase;border-bottom:2.5px solid var(--accent);padding-bottom:2px;line-height:1}
+.logo-sub{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-left:10px;align-self:center}
+.hdr-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.hdr-time{font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.live{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.theme-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:4px 9px;cursor:pointer;font-size:13px;transition:all .15s;color:var(--text2)}
+.theme-btn:hover{border-color:var(--border2)}
+.gear-btn{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:4px;line-height:1;border-radius:var(--r);transition:color .15s}
+.gear-btn:hover{color:var(--accent)}
+.lang-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--text2);transition:all .15s}
+.lang-btn:hover{border-color:var(--border2)}
+.lang-btn.translating{border-color:var(--accent);color:var(--accent);animation:blink 1.5s infinite}
+.settings-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 28px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.settings-panel.open{display:flex}
+.settings-label{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
+.settings-input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:5px 10px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none}
+.settings-input:focus{border-color:var(--accent)}
+.settings-input::placeholder{color:var(--text3)}
+.settings-save{padding:5px 14px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);color:var(--accent2);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .12s}
+.settings-save:hover{background:var(--accent);color:#fff}
+.settings-note{font-family:var(--mono);font-size:9px;color:var(--text3);width:100%}
+
+/* NAV — category tabs */
+.fbar{display:flex;align-items:center;gap:0;padding:0 28px;overflow-x:auto;scrollbar-width:none;border-top:none}
+.fbar::-webkit-scrollbar{display:none}
+.fbtn{padding:11px 15px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--ui);font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;white-space:nowrap;margin-bottom:-1px}
+.fbtn:hover{color:var(--text)}
+.fbtn.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.fcnt{display:inline-block;font-size:10px;color:var(--text3);background:var(--bg2);border-radius:10px;padding:1px 6px;margin-left:4px;font-weight:400;font-family:var(--mono)}
+.fbtn.on .fcnt{background:var(--accent-bg);color:var(--accent2)}
+.rfbtn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.rfbtn:hover{background:var(--accent2)}
+.rfbtn:disabled{opacity:.5;cursor:not-allowed}
+.spin{display:inline-block;animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* TIME FILTER BAR */
+.tbar{display:flex;align-items:center;gap:6px;padding:7px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.tbtn{padding:4px 14px;background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text3);transition:all .15s;white-space:nowrap}
+.tbtn:hover{border-color:var(--border2);color:var(--text)}
+.tbtn.on{background:var(--text);color:var(--surface);border-color:var(--text);font-weight:600}
+.tbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:4px}
+
+/* SOURCE FILTER BAR */
+.srcbar{display:flex;align-items:center;gap:6px;padding:6px 28px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-wrap:wrap}
+.srcbar::-webkit-scrollbar{display:none}
+.srcbtn{display:flex;align-items:center;gap:4px;padding:3px 9px;background:var(--surface);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .15s;white-space:nowrap}
+.srcbtn:hover{border-color:var(--border2);color:var(--text)}
+.srcbtn.on{background:var(--text);color:var(--surface);border-color:var(--text)}
+.srcbtn.ok  .srcdot{background:#22c55e}
+.srcbtn.err .srcdot{background:var(--red)}
+.srcbtn.load .srcdot{background:var(--accent);animation:blink 1s infinite}
+.srcdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.srcbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-right:2px}
+.src-clear{padding:3px 9px;background:none;border:1px dashed var(--border);border-radius:20px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.src-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* STATUS BAR */
+.sbar{font-family:var(--mono);font-size:10px;color:var(--text3);padding:5px 28px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;min-height:26px;background:var(--bg2)}
+.sbar::-webkit-scrollbar{display:none}
+.si{display:flex;align-items:center;gap:4px}.sd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.si.ok .sd{background:#22c55e}.si.ok{color:var(--green);opacity:.8}
+.si.err .sd{background:var(--red)}.si.err{color:var(--red);opacity:.8}
+.si.load .sd{background:var(--accent);animation:blink 1s infinite}
+.syp{color:var(--accent);margin-left:auto;animation:blink 1.5s infinite}
+
+/* TICKER */
+.ticker-wrap{overflow:hidden;background:var(--text);padding:6px 0}
+.ticker-inner{display:flex;animation:tick 70s linear infinite;width:max-content}
+.ticker-inner:hover{animation-play-state:paused}
+@keyframes tick{to{transform:translateX(-50%)}}
+.tick-item{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.45);padding:0 28px;white-space:nowrap}
+.tick-item b{color:var(--accent);margin-right:5px}
+[data-theme=dark] .tick-item{color:var(--text3)}
+
+/* CONTENT */
+.content{max-width:1240px;margin:0 auto;padding:28px 28px 48px}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;margin-top:32px}
+.sec-hdr:first-child{margin-top:0}
+.slbl{font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text)}
+.sline{flex:1;height:1px;background:var(--border)}
+.scnt{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.sdot{display:none}
+
+/* Sub-sections */
+.subsec{display:flex;align-items:center;gap:8px;margin:14px 0 10px;padding:7px 12px;border-radius:var(--r);font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.subsec.yaroslavl{background:#EAF4FB;color:#1A6DA5;border-left:3px solid #5DADE2}
+.subsec.moscow   {background:#F4ECF7;color:#7D3C98;border-left:3px solid #AF7AC5}
+.subsec.ru-eco   {background:#EAFAF1;color:#1E8449;border-left:3px solid #52BE80}
+.subsec.world-eco{background:#FEF9E7;color:#9A7D0A;border-left:3px solid #F4D03F}
+[data-theme=dark] .subsec.yaroslavl{background:rgba(93,173,226,.08);color:#5DADE2;border-left-color:#5DADE2}
+[data-theme=dark] .subsec.moscow   {background:rgba(175,122,197,.08);color:#AF7AC5;border-left-color:#AF7AC5}
+[data-theme=dark] .subsec.ru-eco   {background:rgba(82,190,128,.08);color:#52BE80;border-left-color:#52BE80}
+[data-theme=dark] .subsec.world-eco{background:rgba(244,208,63,.08);color:#D4AC0D;border-left-color:#F4D03F}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-bottom:4px;align-items:start}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;animation:rise .3s ease both;box-shadow:var(--shadow-card);height:200px;display:flex;flex-direction:column;overflow:hidden}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px);border-color:var(--border2)}
+[data-theme=dark] .card:hover{box-shadow:none;transform:none;border-color:var(--accent)}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,var(--accent));border-radius:var(--r) 0 0 var(--r);opacity:0;transition:opacity .2s}
+.card:hover::before{opacity:1}
+.ch{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.ctags{display:flex;flex-wrap:wrap;gap:4px}
+.cbadge{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:10px;font-weight:600}
+.csub{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.csub.yaroslavl{background:#EAF4FB;color:#1A6DA5;border-color:#AED6F1}
+.csub.moscow   {background:#F4ECF7;color:#7D3C98;border-color:#D7BDE2}
+.csub.ru-eco   {background:#EAFAF1;color:#1E8449;border-color:#A9DFBF}
+.csub.world-eco{background:#FEF9E7;color:#9A7D0A;border-color:#FAE5A0}
+[data-theme=dark] .csub.yaroslavl{background:rgba(93,173,226,.1);color:#5DADE2;border-color:rgba(93,173,226,.3)}
+[data-theme=dark] .csub.moscow   {background:rgba(175,122,197,.1);color:#AF7AC5;border-color:rgba(175,122,197,.3)}
+[data-theme=dark] .csub.ru-eco   {background:rgba(82,190,128,.1);color:#52BE80;border-color:rgba(82,190,128,.3)}
+[data-theme=dark] .csub.world-eco{background:rgba(244,208,63,.1);color:#D4AC0D;border-color:rgba(244,208,63,.3)}
+.csynth{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent)}
+.ctime{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0}
+.ctitle{font-family:var(--head);font-size:15px;font-weight:700;line-height:1.35;color:var(--text);margin-bottom:8px;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+
+.persp{border-top:1px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pb{padding:8px 10px;border-radius:var(--r)}
+.pb.ru  {background:#FEF0EF;border-left:2px solid #E74C3C}
+.pb.west{background:#EBF5FB;border-left:2px solid #3498DB}
+[data-theme=dark] .pb.ru  {background:rgba(231,76,60,.07);border-left-color:#F87171}
+[data-theme=dark] .pb.west{background:rgba(52,152,219,.07);border-left-color:#60A5FA}
+.pbl{font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
+.pb.ru   .pbl{color:#C0392B}
+.pb.west .pbl{color:#2471A3}
+[data-theme=dark] .pb.ru   .pbl{color:#F87171}
+[data-theme=dark] .pb.west .pbl{color:#60A5FA}
+.pbt{font-size:11px;line-height:1.5;color:var(--text2)}
+.csrcs{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;margin-top:auto}
+.chip{font-family:var(--mono);font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+
+/* SKELETON */
+.skel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;animation:shim 1.4s ease-in-out infinite}
+@keyframes shim{0%,100%{opacity:.5}50%{opacity:1}}
+.sl{height:9px;background:var(--bg2);border-radius:4px;margin-bottom:7px}
+.sl-t{height:15px;background:var(--bg2);border-radius:4px;margin-bottom:5px}
+
+/* MSG */
+.empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:24px;text-align:center}
+.msg-box{margin:40px auto;max-width:520px;border:1px solid var(--border);border-radius:8px;padding:32px;background:var(--surface);text-align:center;box-shadow:var(--shadow)}
+.msg-title{font-family:var(--head);font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px}
+.msg-text{font-family:var(--mono);font-size:11px;color:var(--text3);line-height:1.8;margin-bottom:16px}
+.rbtn{padding:8px 20px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer;margin:4px}
+.rbtn:hover{background:var(--accent2)}
+
+/* TIME FILTER BAR */
+.tbar{display:flex;align-items:center;gap:6px;padding:7px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.tbtn{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:none;
+      font-family:var(--ui);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s}
+.tbtn:hover{border-color:var(--border2);color:var(--text)}
+.tbtn.on{background:var(--text);color:var(--surface);border-color:var(--text);font-weight:600}
+[data-theme=dark] .tbtn.on{background:var(--accent);border-color:var(--accent);color:#0c0c0e}
+.tbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:4px}
+
+/* SOURCE FILTER BAR */
+.srcbar{display:flex;align-items:center;gap:6px;padding:6px 28px;background:var(--bg2);
+        border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-wrap:wrap}
+.srcbar::-webkit-scrollbar{display:none}
+.srcbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;margin-right:2px}
+.srcbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+        border-radius:20px;border:1px solid transparent;background:none;
+        font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap}
+.srcbtn:hover{background:var(--surface);border-color:var(--border2);color:var(--text)}
+.srcbtn.on{background:var(--surface);border-color:var(--border2);color:var(--text);font-weight:600}
+/* srcdot = dot indicator inside source button */
+.srcdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--text3)}
+.srcbtn.ok   .srcdot{background:#22c55e}
+.srcbtn.err  .srcdot{background:var(--red)}
+.srcbtn.load .srcdot{background:var(--accent);animation:blink 1s infinite}
+.srcbtn.on.ok  {border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.07)}
+.srcbtn.on.err {border-color:rgba(192,57,43,.5);background:rgba(192,57,43,.07)}
+/* legacy .srd alias */
+.srd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.src-clear{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;
+           border:1px solid var(--border2);color:var(--text3);cursor:pointer;background:none;
+           transition:all .15s;white-space:nowrap}
+.src-clear:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.syp-sbar{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--accent);animation:blink 1.5s infinite;white-space:nowrap}
+
+@media(max-width:640px){
+  .hdr-brand,.fbar,.content,.sbar,.settings-panel,.tbar,.srcbar{padding-left:14px;padding-right:14px}
+  .logo{font-size:18px}.grid{grid-template-columns:1fr}.persp{grid-template-columns:1fr}
+}
+
+/* ── CARD EXPANDED STATE ─────────────────────────────────────────────────── */
+.card{transition:box-shadow .15s,border-color .15s}
+.card.expanded{border-color:var(--accent)!important;box-shadow:0 4px 20px rgba(0,0,0,.09)!important;transform:none!important;height:auto;overflow:visible}
+.card.expanded .ctitle{-webkit-line-clamp:unset;overflow:visible}
+[data-theme=dark] .card.expanded{box-shadow:0 4px 20px rgba(0,0,0,.4)!important}
+
+/* Expand section lives inside the card */
+.card-expand{margin-top:0;max-height:0;overflow:hidden;
+  transition:max-height .4s cubic-bezier(.4,0,.2,1), margin-top .2s ease, padding-top .2s ease;
+  border-top:0 solid var(--border)}
+.card.expanded .card-expand{max-height:600px;margin-top:14px;padding-top:14px;border-top-width:1px}
+
+.expand-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent2);display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.expand-label::after{content:'';flex:1;height:1px;background:var(--accent);opacity:.3}
+.expand-summary{font-size:13.5px;line-height:1.75;color:var(--text)}
+.expand-skel{display:flex;flex-direction:column;gap:8px}
+.expand-skel-line{background:var(--bg2);border-radius:4px;animation:shim 1.4s ease-in-out infinite}
+.expand-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.expand-open-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+  background:var(--text);color:var(--surface);border:none;border-radius:5px;
+  font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer;
+  text-decoration:none;transition:opacity .15s;flex-shrink:0}
+.expand-open-btn:hover{opacity:.75}
+.expand-close{background:none;border:1px solid var(--border);border-radius:5px;
+  padding:7px 12px;font-family:var(--mono);font-size:11px;color:var(--text3);
+  cursor:pointer;transition:all .15s}
+.expand-close:hover{border-color:var(--border2);color:var(--text)}
+.expand-hint{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.expand-powered{display:block;margin-top:10px;font-family:var(--mono);font-size:9px;
+  color:var(--text3);letter-spacing:.04em;opacity:.7}
+
+@media(max-width:640px){
+  .hdr-brand,.fbar,.content,.sbar,.settings-panel,.tbar,.srcbar{padding-left:14px;padding-right:14px}
+  .logo{font-size:18px}.grid{grid-template-columns:1fr}.persp{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="logo-wrap">
+      <div class="logo">MMSAWW NEWS</div>
+      <span class="logo-sub">Персональный агрегатор</span>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-time">
+        <span class="live"></span>
+        <span id="time-display">—</span>
+        <span style="color:var(--border2)">·</span>
+        <span id="date-display"></span>
+      </div>
+      <button class="lang-btn" id="lang-btn" onclick="toggleLang()" title="Переключить язык">RU</button>
+      <button class="theme-btn" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <button class="gear-btn" onclick="toggleSettings()" title="API ключ">⚙</button>
+    </div>
+  </div>
+  <div class="settings-panel" id="api-panel">
+    <span class="settings-label">🔑 Anthropic API Key:</span>
+    <input type="password" class="settings-input" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+    <button class="settings-save" onclick="saveKey()">Сохранить</button>
+    <span class="settings-note" id="api-note">Включает AI-синтез и точную классификацию.</span>
+  </div>
+  <div class="fbar" id="fbar">
+    <button class="rfbtn" onclick="loadAll()"><span>↻</span> Обновить</button>
+  </div>
+</header>
+
+<!-- TIME FILTER BAR -->
+<div class="tbar" id="tbar">
+  <span class="tbar-label">Период:</span>
+  <button class="tbtn on" id="tbtn-today" onclick="setTimeFilter('today')">Сегодня</button>
+  <button class="tbtn"    id="tbtn-all"   onclick="setTimeFilter('all')">Все новости</button>
+</div>
+
+<!-- SOURCE FILTER BAR -->
+<div class="srcbar" id="srcbar">
+  <span class="srcbar-label">Источники:</span>
+</div>
+
+<!-- STATUS BAR (hidden — info moved to srcbar) -->
+<div id="sbar" style="display:none"></div>
+
+<!-- TICKER -->
+<div class="ticker-wrap" id="ticker-wrap" style="display:none">
+  <div class="ticker-inner" id="ticker-inner"></div>
+</div>
+
+<!-- CONTENT -->
+<main class="content" id="content">
+  <div class="msg-box">
+    <div class="msg-title">Загрузка новостей…</div>
+    <div class="msg-text">Подключаемся к RSS-источникам</div>
+  </div>
+</main>
+
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+
+const CATEGORIES = [
+  { id:"all",         label:"Все",               color:"#e8d5a3" },
+  { id:"geopolitics", label:"Геополитика",        color:"#f87171" },
+  { id:"finance",     label:"Финансы",            color:"#34d399" },
+  { id:"conflict",    label:"РФ–Украина",         color:"#fb923c" },
+  { id:"local",       label:"Ярославль & Москва", color:"#60a5fa" },
+];
+
+const SOURCES = [
+  // ── Российские федеральные ────────────────────────────────────────────────
+  {
+    urls: [
+      "https://rssexport.rbc.ru/rbcnews/news/20/full.rss",  // самый надёжный
+      "https://www.rbc.ru/rss/news.rss",
+      "https://rbc.ru/rss/news.rss",
+      "https://rbc.ru/v10/errors/404.rss",        // резерв
+      "https://news.google.com/rss/search?q=site:rbc.ru&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.google.com/rss/search?q=РБК+новости&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"РБК", country:"ru"
+  },
+  {
+    urls: [
+      "https://www.kommersant.ru/RSS/news.xml",
+      "https://www.kommersant.ru/rss/news.xml",
+      "https://news.google.com/rss/search?q=site:kommersant.ru&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"Коммерсант", country:"ru"
+  },
+  {
+    urls: [
+      "https://www.forbes.ru/rss/news",          // прямой RSS
+      "https://www.forbes.ru/rss",
+      "https://www.forbes.ru/newsfeed/rss",
+      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"Forbes RU", country:"ru"
+  },
+  // ── Финансовые ────────────────────────────────────────────────────────────
+  {
+    urls: [
+      "https://frankrg.com/feed",
+      "https://frankrg.com/?feed=rss2",
+      "https://frankmedia.ru/feed",
+      "https://frankmedia.ru/?feed=rss2",
+      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"Frank Media", country:"ru"
+  },
+  // ── Западные ─────────────────────────────────────────────────────────────
+  {
+    urls: [
+      // Reuters RSS (через rss.app прокси или напрямую)
+      "https://feeds.reuters.com/reuters/topNews",
+      "https://feeds.reuters.com/Reuters/worldNews",
+      "https://news.google.com/rss/search?q=site:reuters.com+world&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=Reuters+breaking+news&hl=en&gl=US&ceid=US:en",
+    ],
+    name:"Reuters", country:"west"
+  },
+  {
+    urls: [
+      "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "https://feeds.bbci.co.uk/news/rss.xml",
+      "https://news.google.com/rss/search?q=site:bbc.com/news&hl=en&gl=GB&ceid=GB:en",
+    ],
+    name:"BBC", country:"west"
+  },
+  {
+    urls: [
+      // WSJ — публичный RSS, без пейволла на Google News
+      "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+      "https://feeds.a.dj.com/rss/RSSWSJD.xml",
+      "https://news.google.com/rss/search?q=site:wsj.com&hl=en&gl=US&ceid=US:en",
+    ],
+    name:"WSJ", country:"west"
+  },
+  {
+    urls: ["https://www.aljazeera.com/xml/rss/all.xml"],
+    name:"Al Jazeera", country:"west"
+  },
+  {
+    urls: [
+      // FT — пейволл, прямой RSS только подписчикам; Google News даёт заголовки
+      "https://news.google.com/rss/search?q=Financial+Times&hl=en&gl=GB&ceid=GB:en",
+      "https://news.google.com/rss/search?q=site:ft.com&hl=en&gl=GB&ceid=GB:en",
+    ],
+    name:"FT", country:"west"
+  },
+  // ── Локальные ─────────────────────────────────────────────────────────────
+  {
+    urls: [
+      "https://76.ru/rss/",
+      "https://76.ru/rss/all",
+      "https://76.ru/feed/",
+    ],
+    name:"76.ru", country:"ru", tag:"Ярославль"
+  },
+  {
+    urls: [
+      "https://www.m24.ru/rss.xml",
+      "https://m24.ru/rss.xml",
+      "https://www.m24.ru/rss",
+    ],
+    name:"Москва 24", country:"ru", tag:"Москва"
+  },
+];
+
+// CORS proxies — tried in order until one works
+// Two types of proxies:
+// TYPE "cors"     — returns raw RSS XML
+// TYPE "rss2json" — rss2json.com fetches feed server-side (bypasses UA blocks)
+const PROXIES = [
+  { type:"cors",     fn: url => `https://corsproxy.io/?${encodeURIComponent(url)}`                   },
+  { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=30` },
+  { type:"cors",     fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`      },
+  { type:"cors",     fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
+  { type:"cors",     fn: url => `https://thingproxy.freeboard.io/fetch/${url}`                       },
+];
+
+
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+
+let state = {
+  cards: [],
+  filter: "all",
+  timeFilter: "today",   // "today" | "all"
+  srcFilter: new Set(),  // empty = show all; non-empty = show only these sources
+  lang: "ru",            // "ru" | "en"
+  srcStatus: {},
+  loading: false,
+  classifying: false,
+  translating: false,
+  apiKey: "",
+  synthCount: 0,
+  synthTotal: 0,
+  lastUpdated: null,
+  runId: 0,
+};
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+
+const cdata = s => (s||"").replace(/<!\[CDATA\[|\]\]>/g,"").trim();
+const strip = s  => (s||"").replace(/<[^>]+>/g," ").replace(/\s{2,}/g," ").trim();
+
+function formatTime(d) {
+  if (!d) return "—";
+  const m = Math.round((Date.now()-d)/60000);
+  if (m < 1)  return "только что";
+  if (m < 60) return `${m} мин назад`;
+  const h = Math.round(m/60);
+  if (h < 24) return `${h} ч назад`;
+  return `${Math.round(h/24)} д назад`;
+}
+
+// ── FALLBACK keyword rules (used when no API key) ───────────────────────────
+// Strict: each category has explicit EXCLUDE patterns too
+const KW = {
+  // RF-Ukraine: ONLY direct military conflict, front, strikes, negotiations RF<->UA
+  conflict: {
+    include: /украин|ukraine|зсу|всу|нато.*украин|украин.*нато|фронт.*украин|украин.*фронт|обстрел.*украин|украин.*обстрел|наступлен.*украин|украин.*наступлен|контрнаступ|мариупол|харьков|запорожье|херсон|донбасс|донецк|луганск|бахмут|авдеевк|kharkiv|zaporizhzhia|kherson|donbas|donetsk|bakhmut|zelenskyy|зеленськ|переговоры.*украин|украин.*переговоры|ceasef|перемир.*украин|украин.*перемир/i,
+    exclude: /иран|iran|израил|israel|газа|gaza|китай|china|сирия|syria|йемен|yemen|финанс|санкц(?!.*украин)|бирж|ставк|инфляц|пакистан|pakistan|афганистан|afghanistan|индия|india|ливан|lebanon|ирак|iraq|дубай|dubai|йемен|houthi/i,
+  },
+  // Geopolitics: international relations, OTHER conflicts, diplomacy (not RF-UA war, not finance)
+  geopolitics: {
+    include: /иран|iran|израил|israel|газа|gaza|китай|china|сша|США|usa|us.*politi|трамп|trump|байден|biden|нато|nato|ООН|un|g7|g20|макрон|macron|шольц|scholz|дипломат|посольств|мид|госдеп|state dept|венесуэл|venezuela|сирия|syria|йемен|yemen|северн.*коре|north korea|пакистан|pakistan|тайван|taiwan|африк.*конфликт|талиб|taliban|саммит|summit|договор|treaty|санкц.*иран|санкц.*китай/i,
+    exclude: /украин.*фронт|фронт.*украин|обстрел украин|наступлен.*украин|рубль|доллар|биржа|инфляц|ставк|ВВП|gdp|акци|облигац/i,
+  },
+  // Finance: strictly economic/financial — no military, no political conflicts
+  finance: {
+    include: /рубль|доллар|евро|dollar|euro|биржа|инфляц|ВВП|gdp|цент.*банк|ЦБ|фрс|fed|акци|stock|нефть|brent|wti|природ.*газ|рынок|market|банк.*отчет|отчет.*банк|инвест|invest|крипт|crypto|биткоин|bitcoin|ключев.*ставк|процент.*ставк|облигац|облигации|тариф.*торгов|торгов.*тариф|пошлин|tariff|trade.*deal|сделк|слияни|поглощени|ipo|мвф|imf|всемир.*банк|world bank|бюджет.*дефицит|дефицит.*бюджет|форекс|forex|деривати|фьючерс|индекс.*цен|цен.*индекс|себестоимост|прибыл.*компани|выручк|финанс.*отчет|квартальн.*результ/i,
+    exclude: /украин.*обстрел|обстрел.*украин|военн.*операц|фронт|иран.*ракет|ракет.*иран|политич.*кризис|переворот|революц/i,
+  },
+};
+
+// ── FALLBACK categorizer (no API key) ───────────────────────────────────────
+// "local" is NEVER assigned here — only tag-based sources can ever be local
+function categorizeFallback(title, desc) {
+  const t = (title + " " + desc).toLowerCase();
+  if (KW.conflict.include.test(t)    && !KW.conflict.exclude.test(t))    return "conflict";
+  if (KW.finance.include.test(t)     && !KW.finance.exclude.test(t))     return "finance";
+  if (KW.geopolitics.include.test(t) && !KW.geopolitics.exclude.test(t)) return "geopolitics";
+  return null;
+}
+
+// ── AI BATCH CATEGORIZER ─────────────────────────────────────────────────────
+// RULE: "local" is NOT in AI output — local category is 100% source-gated
+const CAT_PROMPT = `Ты редактор новостного агрегатора. Классифицируй каждую новость строго по одной из ТРЁХ категорий — не более:
+
+"conflict"     — ТОЛЬКО прямые военные действия РФ vs Украина: фронт, обстрелы, наступления, потери, переговоры именно РФ-Украина. Ничего другого.
+"geopolitics"  — международные отношения (Иран, Китай, Израиль, США, НАТО, G7, ООН и др.), дипломатия, санкции против третьих стран. НЕ финансы. НЕ РФ-Украина война.
+"finance"      — исключительно экономика: ставки ЦБ, биржи, курсы валют, нефть/газ как товар, отчёты компаний, сделки, крипто, тарифы как торговые инструменты. НЕ политика, НЕ война.
+"skip"         — всё остальное: спорт, культура, погода, криминал, городские события, ДТП, ЖКХ.
+
+Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
+[{"i":0,"cat":"finance"},{"i":1,"cat":"skip"},...]`;
+
+async function classifyBatch(items, apiKey) {
+  const lines = items.map((it, i) =>
+    `${i}. [${it.sourceName}] ${it.title}: ${it.description.slice(0, 120)}`
+  ).join("\n");
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        messages: [{ role: "user", content: CAT_PROMPT + "\n\nСтатьи:\n" + lines }],
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || "").join("");
+    const m = text.match(/\[[\s\S]*?\]/);
+    if (!m) return null;
+    return JSON.parse(m[0]);
+  } catch { return null; }
+}
+
+async function categorizeWithAI(rawItems, apiKey) {
+  // ── STEP 1: local items come ONLY from tagged sources, never from AI ──────
+  const localItems    = rawItems.filter(it => it.tag);    // YarNews + Москва24 only
+  const nonLocalItems = rawItems.filter(it => !it.tag);   // everything else → AI
+
+  const BATCH = 15;
+  const catMap = {};
+
+  for (let i = 0; i < nonLocalItems.length; i += BATCH) {
+    const batch  = nonLocalItems.slice(i, i + BATCH);
+    const result = await classifyBatch(batch, apiKey);
+    if (result) {
+      result.forEach(r => { catMap[i + r.i] = r.cat; });
+    } else {
+      batch.forEach((it, bi) => {
+        catMap[i + bi] = categorizeFallback(it.title, it.description);
+      });
+    }
+  }
+
+  const classified = nonLocalItems.map((it, idx) => {
+    const cat = catMap[idx];
+    // Hard block: if AI somehow returns "local" — discard entirely
+    if (!cat || cat === "skip" || cat === "local") return null;
+    return { ...it, cat };
+  }).filter(Boolean);
+
+  // ── STEP 2: local items are returned as-is, never re-classified ───────────
+  return [...localItems, ...classified];
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCAL CONTENT FILTER
+// ═══════════════════════════════════════════════════════════
+
+// Words that signal the article is NOT a local city story
+const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|путин|putin|китай|china|иран|iran|израил|israel|сша|usa|газпром|госдума|федераль|минфин|минобороны|центробанк|президент|правительство рф|кремль|kremlin|sanctions|санкц|missile|ракет.*удар|обстрел|наступлен|биткоин|bitcoin|нефть.*цен|brent|доллар.*курс|курс.*доллар|ввп|gdp|инфляц|ставк.*цб|цб.*ставк/i;
+
+// Words that confirm article IS about the city
+const YAROSLAVL_KW = /ярославл|ярослав|ярославск|рыбинск|углич|переславл|тутаев|ростов велик/i;
+const MOSCOW_KW    = /москв|московск|мэрия|собянин|mos\.ru|троицк|зеленоград|новая москва/i;
+
+function isLocalArticle(title, desc, tag) {
+  const t = (title + " " + desc).toLowerCase();
+
+  // Reject if clearly national/international topic
+  if (NATIONAL_KW.test(t)) return false;
+
+  // Must mention the city name (or nearby cities)
+  if (tag === "Ярославль") return YAROSLAVL_KW.test(t);
+  if (tag === "Москва")    return MOSCOW_KW.test(t);
+
+  return false; // unknown tag → discard
+}
+
+// ═══════════════════════════════════════════════════════════
+// RSS FETCH WITH PROXY FALLBACK
+// ═══════════════════════════════════════════════════════════
+
+// Try ONE proxy+url combo — returns xml string or null
+async function tryOne(proxyObj, sourceUrl, timeout) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(proxyObj.fn(sourceUrl), { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+
+    if (proxyObj.type === "rss2json") {
+      const json = await res.json();
+      if (json.status !== "ok" || !json.items?.length) return null;
+      const xmlItems = json.items.map(it => `<item><title><![CDATA[${it.title||""}]]></title><description><![CDATA[${it.description||it.content||""}]]></description><link>${it.link||""}</link><pubDate>${it.pubDate||""}</pubDate></item>`).join("");
+      return `<?xml version="1.0"?><rss><channel>${xmlItems}</channel></rss>`;
+    }
+
+    const ct   = res.headers.get("content-type") || "";
+    const text = ct.includes("json") ? (await res.json()).contents || "" : await res.text();
+    return (text && text.length > 100) ? text : null;
+  } catch { clearTimeout(tid); return null; }
+}
+
+// Race ALL proxy×url combos simultaneously — first valid response wins
+async function fetchSource(src) {
+  const urlList = src.urls || [src.url];
+  const TIMEOUT = 7000;
+
+  const races = [];
+  for (const u of urlList) {
+    for (const proxy of PROXIES) {
+      races.push(tryOne(proxy, u, TIMEOUT));
+    }
+  }
+
+  // Promise.any: resolves with first non-null, rejects if all fail
+  const xml = await Promise.any(
+    races.map(p => p.then(v => v ?? Promise.reject("null")))
+  ).catch(() => null);
+
+  if (!xml) return [];
+
+
+  try {
+    const doc  = new DOMParser().parseFromString(xml, "text/xml");
+    const els  = doc.querySelectorAll("item, entry");
+    const out  = [];
+    let idx = 0;
+    els.forEach(el => {
+      if (idx++ >= 20) return;
+      const title = strip(cdata(el.querySelector("title")?.textContent));
+      const desc  = strip(cdata(
+        el.querySelector("description")?.textContent ||
+        el.querySelector("content")?.textContent || ""
+      )).slice(0,350);
+      const link  = (el.querySelector("link")?.textContent?.trim() ||
+                     el.querySelector("link")?.getAttribute("href") || "").trim();
+      const rawDate = el.querySelector("pubDate,published,updated")?.textContent;
+      const date = rawDate ? new Date(rawDate) : new Date();
+      if (!title || title.length < 5) return;
+      // Tagged sources (YarNews / Москва24): ONLY keep articles that are
+      // genuinely about that city — drop anything national/international
+      if (src.tag) {
+        const isLocalContent = isLocalArticle(title, desc, src.tag);
+        if (!isLocalContent) return; // discard silently
+      }
+      const cat = src.tag ? "local" : "pending";
+      out.push({ title, description:desc, link, date, cat,
+        sourceName:src.name, sourceCountry:src.country, tag:src.tag||null });
+    });
+    return out;
+  } catch { return []; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEDUP
+// ═══════════════════════════════════════════════════════════
+
+function tokenSet(s) {
+  return new Set(s.toLowerCase().replace(/[^а-яёa-z0-9]/gi," ").split(/\s+/).filter(w=>w.length>3));
+}
+function jaccard(a, b) {
+  const sa=tokenSet(a), sb=tokenSet(b);
+  let inter=0; sa.forEach(t=>{ if(sb.has(t)) inter++; });
+  const union=sa.size+sb.size-inter;
+  return union ? inter/union : 0;
+}
+function groupArticles(items) {
+  const groups=[], used=new Set();
+  for (let i=0; i<items.length; i++) {
+    if (used.has(i)) continue;
+    const g=[items[i]]; used.add(i);
+    for (let j=i+1; j<items.length; j++) {
+      if (used.has(j)) continue;
+      if (jaccard(items[i].title, items[j].title) >= 0.22) { g.push(items[j]); used.add(j); }
+    }
+    groups.push(g);
+  }
+  return groups;
+}
+
+function makeCard(group) {
+  const p = group[0];
+  const sources = [...new Set(group.map(g=>g.sourceName))];
+  const ru   = group.filter(g=>g.sourceCountry==="ru");
+  const west = group.filter(g=>g.sourceCountry==="west");
+  // needsTranslation: card has at least one western article AND no Russian counterpart
+  const needsTranslation = west.length > 0 && ru.length === 0;
+  return {
+    id: Math.random().toString(36).slice(2),
+    title: p.title,
+    summary: p.description || p.title,
+    // Translation fields — filled by translateCards()
+    title_ru: needsTranslation ? null : p.title,
+    summary_ru: needsTranslation ? null : decodeEntities(p.description || p.title || ""),
+    title_en: null,   // filled lazily when switching to EN
+    summary_en: null,
+    needsTranslation,
+    cat: p.cat, tag: p.tag, sources, link: p.link, date: p.date,
+    time: formatTime(p.date),
+    perspectives: (ru.length && west.length) ? {
+      russian: ru[0].description?.slice(0,160) || null,
+      western: west[0].description?.slice(0,160) || null,
+    } : null,
+    synthesized: false,
+    raw: group,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI SYNTHESIS (optional, needs API key)
+// ═══════════════════════════════════════════════════════════
+
+async function synthesize(card) {
+  if (!state.apiKey || card.raw.length < 2) return card;
+
+  const ru   = card.raw.filter(i=>i.sourceCountry==="ru");
+  const west = card.raw.filter(i=>i.sourceCountry==="west");
+  const both = ru.length>0 && west.length>0;
+  const snips = card.raw.map(i=>`[${i.sourceName}] ${i.title}: ${i.description.slice(0,200)}`).join("\n");
+  const pf = both
+    ? `"perspectives":{"russian":"мнение рос.СМИ 1-2 пред","western":"мнение зап.СМИ 1-2 пред"}`
+    : `"perspectives":null`;
+
+  const prompt = `Объедини эти новости об одном событии. Только JSON без markdown:\n{"title":"до 80 символов","summary":"2-3 предложения",${pf}}\n\n${snips}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:350,
+        messages:[{role:"user",content:prompt}] }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return card;
+    const data = await res.json();
+    const text = (data.content||[]).map(b=>b.text||"").join("");
+    const m = text.match(/\{[\s\S]*?\}/);
+    if (!m) return card;
+    const p = JSON.parse(m[0]);
+    return { ...card, title:p.title||card.title, summary:p.summary||card.summary,
+      perspectives:p.perspectives||card.perspectives, synthesized:true };
+  } catch { return card; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN LOAD
+// ═══════════════════════════════════════════════════════════
+
+async function loadAll() {
+  const run = ++state.runId;
+  state.cards = [];
+  state.loading = true;
+  state.synthCount = 0;
+  state.synthTotal = 0;
+  state.srcStatus = {};
+
+  SOURCES.forEach(s => { state.srcStatus[s.name] = "load"; });
+  renderHeader();
+  renderStatusBar();
+  renderContent();
+  setRefreshState(true);
+
+  // Fetch all RSS in parallel
+  const results = await Promise.all(
+    SOURCES.map(async src => {
+      const items = await fetchSource(src);
+      if (run !== state.runId) return [];
+      state.srcStatus[src.name] = items.length ? "ok" : "err";
+      renderStatusBar();
+      return items;
+    })
+  );
+
+  if (run !== state.runId) return;
+
+  state.loading = false;
+  state.lastUpdated = new Date();
+  setRefreshState(false);
+
+  const allItems = results.flat();
+
+  // ── Categorize: AI if key available, else fallback regex ──────────────────
+  let categorized;
+  if (state.apiKey) {
+    renderStatusBar(); // will show "классификация..."
+    state.classifying = true;
+    renderStatusBar();
+    categorized = await categorizeWithAI(allItems, state.apiKey);
+    state.classifying = false;
+  } else {
+    // No API key: local = tagged sources only, others get regex fallback
+    const localFallback    = allItems.filter(it => it.tag);
+    const nonLocalFallback = allItems.filter(it => !it.tag);
+    const classifiedFallback = nonLocalFallback.map(it => {
+      const cat = categorizeFallback(it.title, it.description);
+      return cat ? { ...it, cat } : null;
+    }).filter(Boolean);
+    categorized = [...localFallback, ...classifiedFallback];
+  }
+
+  // Group + dedup
+  const byCat = {};
+  CATEGORIES.filter(c=>c.id!=="all").forEach(c=>{ byCat[c.id]=[]; });
+  categorized.forEach(it => { if (byCat[it.cat]) byCat[it.cat].push(it); });
+  Object.values(byCat).forEach(arr => arr.sort((a,b)=>b.date-a.date));
+
+  const raw = [];
+  Object.entries(byCat).forEach(([,items]) => {
+    groupArticles(items).slice(0,10).forEach(g => raw.push(makeCard(g)));
+  });
+  raw.sort((a,b) => b.date-a.date);
+
+  state.cards = raw;
+  renderHeader();
+  renderTicker();
+  renderContent();
+
+  // Background RU translation — Claude Haiku if key, Google Translate otherwise
+  translateCards(state.cards, "ru", state.apiKey);
+
+  // Background synthesis
+  if (state.apiKey) {
+    const toSynth = raw.filter(c=>c.raw.length>1);
+    state.synthTotal = toSynth.length;
+    state.synthCount = 0;
+    renderStatusBar();
+
+    for (let i=0; i<toSynth.length; i+=3) {
+      if (run !== state.runId) return;
+      const batch = toSynth.slice(i, i+3);
+      const results2 = await Promise.all(batch.map(c=>synthesize(c)));
+      if (run !== state.runId) return;
+
+      const map = new Map(state.cards.map(c=>[c.id,c]));
+      results2.forEach(r => map.set(r.id,r));
+      state.cards = [...map.values()];
+      state.synthCount += batch.length;
+      renderStatusBar();
+      renderContent(); // re-render to show synthesized badges
+    }
+    state.synthTotal = 0;
+    renderStatusBar();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TRANSLATION
+// ═══════════════════════════════════════════════════════════
+
+// Translate a batch of {title, summary} objects → returns [{title_ru, summary_ru}, ...]
+async function translateBatch(items, targetLang, apiKey) {
+  const dir = targetLang === "ru"
+    ? "Переведи на русский язык. Перевод должен звучать естественно, как написанный носителем языка."
+    : "Translate to English. The translation should sound natural, as if written by a native speaker.";
+
+  const lines = items.map((it, i) =>
+    `${i}|TITLE|${it.title}
+${i}|SUMMARY|${it.summary}`
+  ).join("\n");
+
+  const prompt = `${dir}
+
+Ответь ТОЛЬКО в формате:
+0|TITLE|перевод заголовка
+0|SUMMARY|перевод описания
+1|TITLE|...
+и т.д.
+
+Не добавляй ничего лишнего. Каждая строка начинается с номера.
+
+Тексты:
+${lines}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || "").join("");
+
+    // Parse response lines
+    const result = items.map(() => ({ title: null, summary: null }));
+    text.split("\n").forEach(line => {
+      const m = line.match(/^(\d+)\|(TITLE|SUMMARY)\|(.+)$/);
+      if (!m) return;
+      const [, idx, field, val] = m;
+      const i = parseInt(idx);
+      if (i < result.length) {
+        if (field === "TITLE")   result[i].title   = val.trim();
+        if (field === "SUMMARY") result[i].summary = val.trim();
+      }
+    });
+    return result;
+  } catch { return null; }
+}
+
+// Free Google Translate fallback (no API key needed)
+async function gtranslate(text, targetLang) {
+  if (!text) return text;
+  const sl = targetLang === "ru" ? "en" : "ru";
+  const tl = targetLang;
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.slice(0, 500))}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Response: [[["translated","original",...], ...], ...]
+    const translated = (data[0] || []).map(chunk => chunk[0] || "").join("");
+    return translated || null;
+  } catch { return null; }
+}
+
+async function translateCards(cards, targetLang, apiKey) {
+  const fieldT = targetLang === "ru" ? "title_ru"   : "title_en";
+  const fieldS = targetLang === "ru" ? "summary_ru"  : "summary_en";
+
+  const toTranslate = cards.filter(c => {
+    if (targetLang === "ru") return c.needsTranslation && !c.title_ru;
+    if (targetLang === "en") return !c.title_en;
+    return false;
+  });
+
+  if (!toTranslate.length) return;
+
+  state.translating = true;
+  renderStatusBar();
+
+  if (apiKey) {
+    // ── Claude Haiku: batch translation (high quality) ──────────────────────
+    const BATCH = 8;
+    for (let i = 0; i < toTranslate.length; i += BATCH) {
+      const batch = toTranslate.slice(i, i + BATCH);
+      const result = await translateBatch(
+        batch.map(c => ({ title: c.title, summary: c.summary })),
+        targetLang, apiKey
+      );
+      if (result) {
+        batch.forEach((card, bi) => {
+          const r = result[bi];
+          if (r?.title)   card[fieldT] = r.title;
+          if (r?.summary) card[fieldS] = r.summary;
+        });
+      } else {
+        // Claude failed — fall back to Google for this batch
+        await Promise.all(batch.map(async card => {
+          const [t, s] = await Promise.all([
+            gtranslate(card.title, targetLang),
+            gtranslate(card.summary, targetLang),
+          ]);
+          if (t) card[fieldT] = t;
+          if (s) card[fieldS] = s;
+        }));
+      }
+      renderContent();
+    }
+  } else {
+    // ── Google Translate: free, parallel per card ───────────────────────────
+    const CONCURRENT = 5; // don't hammer Google
+    for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
+      const batch = toTranslate.slice(i, i + CONCURRENT);
+      await Promise.all(batch.map(async card => {
+        const [t, s] = await Promise.all([
+          gtranslate(card.title, targetLang),
+          gtranslate(card.summary, targetLang),
+        ]);
+        if (t) card[fieldT] = t;
+        if (s) card[fieldS] = s;
+      }));
+      renderContent(); // show progress as each batch finishes
+    }
+  }
+
+  state.translating = false;
+  renderStatusBar();
+}
+
+function toggleLang() {
+  const newLang = state.lang === "ru" ? "en" : "ru";
+  state.lang = newLang;
+  const btn = document.getElementById("lang-btn");
+  btn.textContent = newLang.toUpperCase();
+  // Render immediately with what we have (may be partial)
+  renderContent();
+  // Then fill in missing translations
+  translateCards(state.cards, newLang, state.apiKey);
+}
+
+// Helper: get display title/summary for current lang
+function displayTitle(card) {
+  if (state.lang === "ru") return card.title_ru || card.title;
+  return card.title_en || card.title;
+}
+function displaySummary(card) {
+  if (state.lang === "ru") return decodeEntities(card.summary_ru || card.summary || "");
+  return decodeEntities(card.summary_en || card.summary || "");
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+
+function renderHeader() {
+  const fbar = document.getElementById("fbar");
+
+  // Build filter buttons
+  let btns = "";
+  CATEGORIES.forEach(c => {
+    const cnt = c.id==="all" ? state.cards.length : state.cards.filter(x=>x.cat===c.id).length;
+    const on  = state.filter === c.id;
+    const style = on
+      ? `background:${c.color};border-color:${c.color};color:#0c0c0e`
+      : "";
+    const cntBadge = cnt > 0 ? `<span class="fcnt">${cnt}</span>` : "";
+    btns += `<button class="fbtn${on?" on":""}" style="${style}" onclick="setFilter('${c.id}')">${c.label}${cntBadge}</button>`;
+  });
+
+  // Refresh btn
+  const busy = state.loading;
+  btns += `<button class="rfbtn" id="refresh-btn" onclick="loadAll()" ${busy?"disabled":""}>
+    <span id="refresh-icon" class="${busy?"spin":""}">${busy?"↻":"↻"}</span>
+    ${busy?"Загрузка…":"Обновить"}
+  </button>`;
+  fbar.innerHTML = btns;
+
+  // Time
+  const d = new Date();
+  document.getElementById("time-display").textContent =
+    d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("date-display").textContent =
+    d.toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
+}
+
+function renderStatusBar() {
+  const srcbar = document.getElementById("srcbar");
+  if (!srcbar) return;
+  const anyActive = state.srcFilter.size > 0;
+  let html = `<span class="srcbar-label">Источники:</span>`;
+  SOURCES.forEach(s => {
+    const st = state.srcStatus[s.name] || "load";
+    const on = state.srcFilter.has(s.name) ? " on" : "";
+    html += `<button class="srcbtn ${st}${on}" onclick="toggleSrcFilter('${s.name}')"><span class="srcdot"></span>${s.name}</button>`;
+  });
+  if (anyActive) html += `<button class="src-clear" onclick="clearSrcFilter()">✕ сбросить</button>`;
+  if (state.classifying)
+    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">🧠 Классификация…</span>`;
+  else if (state.translating)
+    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--blue);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">🌐 Перевод…</span>`;
+  else if (state.synthTotal>0 && state.synthCount<state.synthTotal)
+    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">⟳ Синтез ${state.synthCount}/${state.synthTotal}</span>`;
+  srcbar.innerHTML = html;
+}
+
+function renderTicker() {
+  const wrap  = document.getElementById("ticker-wrap");
+  const inner = document.getElementById("ticker-inner");
+  const items = state.cards.slice(0,10);
+  if (!items.length) { wrap.style.display="none"; return; }
+  wrap.style.display="block";
+  const doubled = [...items,...items];
+  inner.innerHTML = doubled.map(item => {
+    const cat = CATEGORIES.find(c=>c.id===item.cat);
+    return `<span class="tick-item"><b>${cat?cat.label:""}</b>${escHtml(item.title)}</span>`;
+  }).join("");
+}
+
+// ── Filter helpers ───────────────────────────────────────────────────────────
+function visibleCards(allCards) {
+  let cards = allCards;
+  if (state.timeFilter === "today") {
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+    cards = cards.filter(c => c.date >= cutoff);
+  }
+  if (state.srcFilter.size > 0) {
+    cards = cards.filter(c => c.sources && c.sources.some(s => state.srcFilter.has(s)));
+  }
+  return cards;
+}
+function setTimeFilter(val) {
+  state.timeFilter = val;
+  document.getElementById("tbtn-today").classList.toggle("on", val==="today");
+  document.getElementById("tbtn-all").classList.toggle("on", val==="all");
+  renderContent();
+}
+function toggleSrcFilter(name) {
+  if (state.srcFilter.has(name)) state.srcFilter.delete(name);
+  else state.srcFilter.add(name);
+  renderStatusBar(); renderContent();
+}
+function clearSrcFilter() {
+  state.srcFilter.clear(); renderStatusBar(); renderContent();
+}
+
+function renderContent() {
+  const el = document.getElementById("content");
+
+  if (state.loading && state.cards.length===0) {
+    el.innerHTML = `<div class="grid">${[1,2,3,4,5,6].map(()=>skelHTML()).join("")}</div>`;
+    return;
+  }
+
+  if (!state.loading && state.cards.length===0) {
+    const errored = SOURCES.filter(s=>state.srcStatus[s.name]==="err").map(s=>s.name);
+    el.innerHTML = `<div class="msg-box">
+      <div class="msg-title">Нет данных</div>
+      <div class="msg-text">
+        Не удалось загрузить новости через CORS-прокси.<br>
+        Не прошли источники: ${errored.length ? errored.join(", ") : "все"}<br><br>
+        Попробуйте нажать «Обновить» — прокси иногда восстанавливаются.<br>
+        Или откройте файл через локальный сервер (npx serve .).
+      </div>
+      <button class="rbtn" onclick="loadAll()">↻ Повторить</button>
+    </div>`;
+    return;
+  }
+
+  // Grouped "all" view
+  if (state.filter === "all") {
+    let html = "";
+    CATEGORIES.filter(c=>c.id!=="all").forEach(cat => {
+      const items = visibleCards(state.cards).filter(x=>x.cat===cat.id);
+      html += `<div>
+        <div class="sec-hdr">
+          <span class="sdot" style="background:${cat.color}"></span>
+          <span class="slbl">${cat.label}</span>
+          <div class="sline"></div>
+          <span class="scnt">${items.length}</span>
+        </div>`;
+      if (items.length===0) {
+        html += state.loading
+          ? `<div class="grid">${[1,2,3].map(()=>skelHTML()).join("")}</div>`
+          : `<div class="empty">нет данных по этой теме</div>`;
+      } else {
+        html += renderSubGroups(items, cat.id);
+      }
+      html += `</div>`;
+    });
+    el.innerHTML = html;
+    return;
+  }
+
+  // Filtered view
+  const visible = visibleCards(state.cards).filter(c=>c.cat===state.filter);
+  if (visible.length===0) {
+    el.innerHTML = `<div class="empty">Нет новостей в этом разделе</div>`;
+  } else {
+    el.innerHTML = renderSubGroups(visible, state.filter);
+  }
+}
+
+function renderSubGroups(items, catId) {
+  if (catId !== "local" && catId !== "finance") {
+    return `<div class="grid">${items.map(cardHTML).join("")}</div>`;
+  }
+  const order = catId === "local" ? ["yaroslavl","moscow"] : ["ru-eco","world-eco"];
+  const groups = {};
+  order.forEach(k => { groups[k] = []; });
+  items.forEach(it => {
+    const sc = getSubcat(it);
+    groups[sc && groups[sc] ? sc : order[0]].push(it);
+  });
+  let html = "";
+  order.forEach(key => {
+    const grp = groups[key];
+    if (!grp.length) return;
+    const m = SUBCAT_META[key];
+    html += `<div class="subsec ${m.cls}">${m.label}<span style="font-size:10px;opacity:.6;margin-left:8px;font-weight:400">${grp.length}</span></div>`;
+    html += `<div class="grid" style="margin-bottom:16px">${grp.map(it => cardHTML(it, key)).join("")}</div>`;
+  });
+  return html || `<div class="empty">нет данных</div>`;
+}
+
+function skelHTML() {
+  return `<div class="skel">
+    <div class="sl" style="width:36%;margin-bottom:12px"></div>
+    <div class="sl-t" style="width:90%"></div>
+    <div class="sl-t" style="width:65%"></div>
+    <div class="sl" style="width:100%;margin-top:12px"></div>
+    <div class="sl" style="width:72%"></div>
+  </div>`;
+}
+
+function cardHTML(item) {
+  const cat  = CATEGORIES.find(c=>c.id===item.cat) || CATEGORIES[1];
+  const sc   = arguments[1] || getSubcat(item);
+  const scM  = sc ? SUBCAT_META[sc] : null;
+
+  const dTitle   = displayTitle(item);
+  const dSummary = displaySummary(item);
+  const pendingRU = state.lang === "ru" && item.needsTranslation && !item.title_ru;
+  const transLabel = pendingRU ? `<span class="csynth" style="opacity:.6">⟳ перевод</span>` : "";
+
+  const srcCnt    = item.sources?.length>1 ? `<span class="csub">${item.sources.length} ист.</span>` : "";
+  const tagBadge  = scM ? `<span class="csub ${scM.cls}">${scM.label}</span>` : (item.tag ? `<span class="csub">${item.tag}</span>` : "");
+  const synthBadge = item.synthesized ? `<span class="csynth">⟳ синтез</span>` : "";
+  const catBadge  = `<span class="cbadge" style="background:${cat.color}1a;color:${cat.color};border:1px solid ${cat.color}30">${cat.label}</span>`;
+
+  let perspHTML = "";
+  if (item.perspectives && (item.perspectives.russian || item.perspectives.western)) {
+    perspHTML = `<div class="persp">
+      ${item.perspectives.russian ? `<div class="pb ru"><div class="pbl">🇷🇺 РФ-СМИ</div><p class="pbt">${escHtml(item.perspectives.russian)}</p></div>` : ""}
+      ${item.perspectives.western ? `<div class="pb west"><div class="pbl">🌐 Запад</div><p class="pbt">${escHtml(item.perspectives.western)}</p></div>` : ""}
+    </div>`;
+  }
+
+  const chips    = (item.sources||[]).map(s=>`<span class="chip">${escHtml(s)}</span>`).join("");
+  const safeLink = (item.link||"").replace(/"/g,"&quot;");
+
+  return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
+    <div class="ch">
+      <div class="ctags">${catBadge}${tagBadge}${synthBadge}${srcCnt}${transLabel}</div>
+      <span class="ctime">${item.time}</span>
+    </div>
+    <h3 class="ctitle">${escHtml(dTitle)}</h3>
+    ${perspHTML}
+    ${chips ? `<div class="csrcs">${chips}</div>` : ""}
+    <div class="card-expand" id="expand-${item.id}">
+      <div class="expand-label">AI Резюме</div>
+      <div id="expand-body-${item.id}"></div>
+      <div class="expand-footer">
+        ${(item.raw||[{link:item.link,sourceName:(item.sources||[])[0]||""}])
+          .filter((r,i,a)=>r.link && a.findIndex(x=>x.link===r.link)===i)
+          .slice(0, 3)
+          .map(r=>`<a class="expand-open-btn" href="${(r.link||"").replace(/"/g,"&quot;")}" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            ${escHtml(r.sourceName||"Источник")}</a>`).join("")}
+        <button class="expand-close" onclick="event.stopPropagation();collapseCard('${item.id}')">Свернуть ↑</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function decodeEntities(str) {
+  return (str || "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h,16)))
+    .replace(/ {2,}/g, " ").trim();
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// UI ACTIONS
+// ═══════════════════════════════════════════════════════════
+
+function setFilter(id) {
+  state.filter = id;
+  renderHeader();
+  renderContent();
+}
+
+function setRefreshState(busy) {
+  // handled in renderHeader
+}
+
+function saveKey() {
+  const val = document.getElementById("api-key-input").value.trim();
+  const note = document.getElementById("api-note");
+  if (val.startsWith("sk-ant-")) {
+    state.apiKey = val;
+    note.textContent = "✓ Ключ сохранён — AI включён";
+    note.style.color = "var(--green)";
+    setTimeout(() => document.getElementById("api-panel").classList.remove("open"), 1200);
+  } else {
+    note.textContent = "⚠ Ключ должен начинаться с sk-ant-";
+    note.style.color = "var(--red)";
+  }
+}
+
+// Clock only — auto-refresh removed
+setInterval(() => {
+  const el = document.getElementById("time-display");
+  if (el) el.textContent = new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+}, 1000);
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+
+// ── Theme & Settings ─────────────────────────────────────────────────────────
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "" : "dark");
+  document.getElementById("theme-icon").textContent = dark ? "🌙" : "☀️";
+}
+
+function toggleSettings() {
+  document.getElementById("api-panel").classList.toggle("open");
+}
+
+// ── Sub-category helpers ──────────────────────────────────────────────────────
+const FIN_RU_KW = /рубл|цб|банк росси|мосбирж|московск.*бирж|минфин|росстат|нефтегаз|газпром|роснефть|сбербанк|втб|лукойл|российск.*компан|отечеств/i;
+
+function getSubcat(item) {
+  if (item.cat === "local") return item.tag === "Ярославль" ? "yaroslavl" : "moscow";
+  if (item.cat === "finance") return FIN_RU_KW.test(item.title + " " + (item.summary||"")) ? "ru-eco" : "world-eco";
+  return null;
+}
+
+const SUBCAT_META = {
+  yaroslavl:   { label:"Ярославль",            cls:"yaroslavl" },
+  moscow:      { label:"Москва",               cls:"moscow"    },
+  "ru-eco":    { label:"Российская экономика", cls:"ru-eco"    },
+  "world-eco": { label:"Мировая экономика",    cls:"world-eco" },
+};
+
+document.getElementById("date-display").textContent =
+  new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
+document.getElementById("time-display").textContent =
+  new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+
+loadAll();
+
+// ═══════════════════════════════════════════════════════════
+// ARTICLE INLINE EXPAND
+// ═══════════════════════════════════════════════════════════
+
+let modalCache  = {};   // cardId → summary text
+let expandedId  = null; // currently expanded card id
+
+function toggleArticle(cardId) {
+  if (expandedId === cardId) {
+    collapseCard(cardId);
+  } else {
+    if (expandedId) collapseCard(expandedId);
+    expandCard(cardId);
+  }
+}
+
+function expandCard(cardId) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  const cardEl = document.getElementById("card-" + cardId);
+  const bodyEl = document.getElementById("expand-body-" + cardId);
+  if (!cardEl || !bodyEl) return;
+
+  expandedId = cardId;
+  cardEl.classList.add("expanded");
+  setTimeout(() => cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+
+  // Already have AI summary cached
+  if (modalCache[cardId] && modalCache[cardId].ai) {
+    renderSummary(bodyEl, cardId);
+    return;
+  }
+
+  // ── Step 1: show RSS content immediately (always available) ──────────────
+  const rssText = getRSSText(card);
+  bodyEl.innerHTML = renderTextHTML(rssText, false, !!state.apiKey);
+
+  // No API key — show RSS immediately, then try to enrich with Jina + gtranslate
+  if (!state.apiKey) {
+    enrichNoKey(card, bodyEl, cardId);
+    return;
+  }
+
+  // ── Step 2: with key → fetch Jina in background, then Claude ─────────────
+  generateAISummary(card, bodyEl, cardId);
+}
+
+function collapseCard(cardId) {
+  const cardEl = document.getElementById("card-" + cardId);
+  if (cardEl) cardEl.classList.remove("expanded");
+  if (expandedId === cardId) expandedId = null;
+}
+
+// Get all RSS text from raw sources, deduplicated and joined
+function getRSSText(card) {
+  const parts = (card.raw || [])
+    .map(r => {
+      const desc = decodeEntities(r.description || "");
+      const title = r.title || "";
+      if (desc && desc.trim() !== title.trim() && desc.length > 20) return desc;
+      return title;
+    })
+    .filter((t, i, a) => t.length > 20 && a.indexOf(t) === i);
+  return parts.join("\n\n") || decodeEntities(card.summary || "") || card.title || "";
+}
+
+
+
+function renderTextHTML(text, isAI, loadingAI, powered) {
+  const hint = loadingAI
+    ? `<span class="expand-powered" style="color:var(--accent2)">&#x1F9E0; Генерирую резюме…</span>`
+    : isAI
+      ? `<span class="expand-powered">${powered||"Powered by claude-haiku-4-5-20251001"}</span>`
+      : `<span class="expand-powered">Для AI-резюме добавьте API ключ (&#9881;)</span>`;
+  return `<p class="expand-summary">${escHtml(text)}</p>${hint}`;
+}
+
+function renderSummary(bodyEl, cardId) {
+  const c = modalCache[cardId];
+  if (!c) return;
+  bodyEl.innerHTML = renderTextHTML(c.text, true, false, c.powered);
+}
+
+// Score a text paragraph: higher = more prose-like, lower = nav/ad junk
+function scoreParagraph(p) {
+  const t = p.trim();
+  if (t.length < 60) return 0;
+  const words = t.split(/\s+/);
+  if (words.length < 10) return 0;
+  // MUST have sentence-ending punctuation — nav menus never do
+  const sentences = (t.match(/[.!?…]+/g)||[]).length;
+  if (sentences === 0) return 0;
+  // Penalize bullet-heavy content
+  const bulletRatio = (t.match(/^[*\-]/gm)||[]).length / words.length;
+  if (bulletRatio > 0.3) return 0;
+  // Penalize lines with multiple URLs
+  if ((t.match(/https?:\/\//g)||[]).length > 1) return 0;
+  // Penalize all-caps word ratio > 30% (nav menus in Russian/English)
+  const capsWords = words.filter(w => w.length > 3 && w === w.toUpperCase() && /[A-ZА-Я]/.test(w)).length;
+  if (capsWords / words.length > 0.3) return 0;
+  // Penalize sentence-per-word ratio too low (list of topics glued together)
+  if (sentences / words.length < 0.04) return 0;
+  // Kill subscription/tag lines: "Подписывайтесь на темы: [x] Иран [x] США..."
+  if ((t.match(/\[x\]/g)||[]).length >= 2) return 0;
+  if (/Подписывайтесь|Subscribe to|Follow us|Sign up/i.test(t) && t.length < 200) return 0;
+  return sentences * 15 + words.length;
+}
+
+// Extract best prose paragraphs from Jina markdown
+function extractProseFromJina(raw) {
+  // Step 1: strip metadata header (everything up to first blank line after headers)
+  let t = raw.replace(/^(Title|URL Source|URL|Published Time|Published Date|Markdown Content|Author):[^\n]*\n/gm, "");
+
+  // Step 2: strip images and convert links to text
+  t = t.replace(/!\[[^\]]*\]\([^)]*\)/g, "");
+  t = t.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+
+  // Step 3: strip markdown formatting
+  t = t.replace(/^#{1,6}\s+/gm, "");
+  t = t.replace(/^[=\-]{3,}\s*$/gm, "");
+  t = t.replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/\*([^*\n]+)\*/g, "$1");
+  t = t.replace(/^>\s*/gm, "");
+  t = t.replace(/^\s*[*\-]\s+/gm, ""); // strip list markers but keep text
+
+  // Step 4: decode entities
+  t = decodeEntities(t);
+
+  // Step 5: split into paragraphs and score each
+  const paragraphs = t.split(/\n{2,}/);
+  const scored = paragraphs
+    .map(p => ({ text: p.trim(), score: scoreParagraph(p) }))
+    .filter(p => p.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return null;
+
+  // Take top paragraphs up to ~3000 chars, preserving order from original
+  const topTexts = new Set(scored.slice(0, 15).map(p => p.text)); // more paragraphs for rich articles
+  const ordered = paragraphs
+    .map(p => p.trim())
+    .filter(p => topTexts.has(p))
+    .join("\n\n");
+
+  return ordered.length > 150 ? ordered : null;
+}
+
+async function fetchArticleText(url) {
+  if (!url) return null;
+
+  try {
+    // Jina Reader with X-Target-Selector to get only article body
+    // For known sites, restrict to article content area
+    const jinaHeaders = { "X-Timeout": "10" };
+    if (url.includes("kommersant.ru")) {
+      jinaHeaders["X-Target-Selector"] = ".article_text_wrapper, .article__text, [itemprop=articleBody]";
+      jinaHeaders["X-Remove-Selector"] = ".article_sidebar, .aside, .related, footer, nav, .tags, .subscribe";
+    } else if (url.includes("reuters.com")) {
+      jinaHeaders["X-Target-Selector"] = "[class*=article-body], [class*=ArticleBody], .StandardArticleBody_body";
+    } else if (url.includes("bbc.")) {
+      jinaHeaders["X-Target-Selector"] = "[class*=article], article";
+    } else if (url.includes("aljazeera.com")) {
+      jinaHeaders["X-Target-Selector"] = ".wysiwyg, .article-p-wrapper, [class*=ArticleBody]";
+    }
+    const res = await fetch("https://r.jina.ai/" + url, {
+      headers: jinaHeaders,
+      signal: AbortSignal.timeout(12000),
+    });
+    if (res.ok) {
+      const raw = await res.text();
+      const prose = extractProseFromJina(raw);
+      if (prose && prose.length > 200) return prose.slice(0, 5000);
+    }
+  } catch {}
+
+  // Fallback: allorigins — only <article> or <main>
+  try {
+    const res = await fetch(
+      "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+      { signal: AbortSignal.timeout(7000) }
+    );
+    if (!res.ok) return null;
+    const raw = await res.text();
+    const m = raw.match(/<article[^>]*>([\s\S]{400,}?)<\/article>/i)
+           || raw.match(/<main[^>]*>([\s\S]{400,}?)<\/main>/i);
+    if (!m) return null;
+    const clean = decodeEntities(m[1]
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/ {3,}/g, " ").trim());
+    const words = clean.split(/\s+/).filter(w => w.length > 2);
+    if (words.length < 80) return null;
+    return words.slice(0, 500).join(" ");
+  } catch {}
+  return null;
+}
+
+async function enrichNoKey(card, bodyEl, cardId) {
+  const links = [...new Set((card.raw||[]).map(r=>r.link).filter(Boolean))];
+  let text = null;
+  let fromJina = false;
+
+  // Try Jina for each source link
+  for (const link of links.slice(0, 2)) {
+    const fetched = await fetchArticleText(link);
+    if (fetched && fetched.length > 150) { text = fetched; fromJina = true; break; }
+  }
+
+  // Jina failed (paywall/block) — fall back to RSS descriptions
+  if (!text) {
+    // For RSS fallback, collect raw descriptions (may be English for western sources)
+    const rssRaw = (card.raw||[])
+      .map(r => (r.description || r.title || "").trim())
+      .filter((t,i,a) => t.length > 20 && a.indexOf(t) === i)
+      .join(" ");
+    text = rssRaw || getRSSText(card);
+  }
+
+  if (!text || text.length < 20) return;
+
+  // Detect English by checking raw text chars (not translated title)
+  function isTextEnglish(t) {
+    const sample = t.slice(0, 400).replace(/[^a-zA-Zа-яА-Я]/g, "");
+    const lat = (sample.match(/[a-zA-Z]/g)||[]).length;
+    const cyr = (sample.match(/[а-яА-Я]/g)||[]).length;
+    return lat > cyr; // any majority of latin = English
+  }
+
+  // Always translate western sources OR English text
+  const westernSources = ["WSJ","Reuters","BBC","Al Jazeera","FT","Bloomberg"];
+  const isWestern = (card.sources||[]).some(s => westernSources.some(w => s.includes(w)));
+  if (state.lang === "ru" && (isWestern || isTextEnglish(text))) {
+    // For longer Jina text — translate first 2000 chars in chunks of 500
+    if (fromJina && text.length > 600) {
+      const chunks = [];
+      for (let i = 0; i < Math.min(text.length, 2000); i += 500) {
+        chunks.push(text.slice(i, i + 500));
+      }
+      const translated = await Promise.all(chunks.map(c => gtranslate(c, "ru")));
+      const joined = translated.filter(Boolean).join(" ");
+      if (joined.length > 100) text = joined;
+    } else {
+      const translated = await gtranslate(text.slice(0, 1000), "ru");
+      if (translated && translated.length > 50) text = translated;
+    }
+  }
+
+  const display = cutAtSentence(text, 900);
+  const bodyNow = document.getElementById("expand-body-" + cardId);
+  if (bodyNow) bodyNow.innerHTML = renderTextHTML(display, false, false);
+}
+
+// Cut text at a sentence boundary within maxChars — never mid-sentence
+function cutAtSentence(text, maxChars) {
+  if (!text) return "";
+  if (text.length <= maxChars) return text;
+  // Find last sentence end (. ! ?) before maxChars
+  const chunk = text.slice(0, maxChars);
+  const lastEnd = Math.max(
+    chunk.lastIndexOf(". "), chunk.lastIndexOf("! "),
+    chunk.lastIndexOf("? "), chunk.lastIndexOf(".\n"),
+    chunk.lastIndexOf("\u2026")
+  );
+  if (lastEnd > maxChars * 0.5) {
+    return chunk.slice(0, lastEnd + 1).trim();
+  }
+  // Fallback: cut at last space
+  const lastSpace = chunk.lastIndexOf(" ");
+  return chunk.slice(0, lastSpace > 0 ? lastSpace : maxChars).trim() + "…";
+}
+
+async function generateAISummary(card, bodyEl, cardId) {
+  const links = [...new Set((card.raw||[]).map(r=>r.link).filter(Boolean))];
+
+  const fetched = await Promise.allSettled(links.slice(0, 3).map(fetchArticleText));
+
+  const articleParts = [];
+  links.slice(0, 3).forEach((link, i) => {
+    const r = fetched[i];
+    if (r.status === "fulfilled" && r.value && r.value.length > 150) {
+      const src = (card.raw||[]).find(x => x.link === link)?.sourceName || "";
+      articleParts.push((src ? "[" + src + "]\n" : "") + r.value);
+    }
+  });
+
+  let articleContent = articleParts.join("\n\n---\n\n");
+
+  // Validate: check if content has real sentences (not nav junk)
+  const sentenceCount = (articleContent.match(/[.!?…]+/g)||[]).length;
+  const wordCount2 = articleContent.split(/\s+/).length;
+  const fromFull = articleContent.length > 300 && sentenceCount > 3 && sentenceCount/wordCount2 > 0.03;
+
+  if (!fromFull) {
+    // Fall back to RSS — at least it's clean
+    articleContent = (card.raw||[])
+      .map(r => "[" + (r.sourceName||"") + "] " + r.title + "\n" + decodeEntities(r.description||""))
+      .join("\n\n");
+  }
+
+  const lang = state.lang === "ru" ? "на русском языке" : "in English";
+  // Force Russian output even if source text is English
+  const langInstruction = state.lang === "ru"
+    ? "на русском языке (даже если источник на английском — резюме должно быть на русском)"
+    : "in English";
+
+  const prompt = "Ты редактор новостного агрегатора. Напиши развёрнутое резюме " + langInstruction + ".\n\n"
+    + "ТРЕБОВАНИЯ:\n"
+    + "- 5-7 предложений, 160-220 слов\n"
+    + "- Конкретные цифры, даты, имена, должности, места\n"
+    + "- Хронология событий, контекст, почему важно\n"
+    + "- НЕ начинай с 'Согласно', 'По данным', 'В статье', 'Сообщается'\n"
+    + "- Стиль Reuters/Bloomberg: факты, без воды, с именами и цифрами\n"
+    + "- Это РЕЗЮМЕ — не цитата и не пересказ дословно, а твоя авторская выжимка\n\n"
+    + (fromFull ? "Текст статьи (прочитай и сделай резюме):\n" : "Описание из RSS (сделай максимально информативное резюме):\n")
+    + articleContent.slice(0, 6000);
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": state.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 700,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!res.ok) throw new Error("api " + res.status);
+    const data = await res.json();
+    const text = (data.content||[]).map(b => b.text||"").join("").trim();
+    if (!text) throw new Error("empty");
+
+    modalCache[cardId] = {
+      text, ai: true,
+      powered: "Powered by claude-haiku-4-5-20251001 · " + (fromFull ? "из статьи" : "из RSS")
+    };
+    if (expandedId === cardId) renderSummary(bodyEl, cardId);
+  } catch {
+    const bodyNow = document.getElementById("expand-body-" + cardId);
+    if (bodyNow && expandedId === cardId)
+      bodyNow.innerHTML = renderTextHTML(getRSSText(card), false, false);
+  }
+}
+
+
+
+</script>
+</script>
+</body>
+</html>
