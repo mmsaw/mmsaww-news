@@ -494,6 +494,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 
+
+/* Translated link indicator */
+.expand-open-btn[href*="translate.google.com"]::after {
+  content: " 🌐";
+  font-size: 10px;
+  opacity: .7;
+}
+
 </style>
 </head>
 <body>
@@ -1255,7 +1263,7 @@ async function gtranslate(text, targetLang) {
   const sl = targetLang === "ru" ? "en" : "ru";
   const tl = targetLang;
   try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.slice(0, 500))}`;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.slice(0, 1000))}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const data = await res.json();
@@ -1543,6 +1551,26 @@ function skelHTML() {
   </div>`;
 }
 
+
+// ── Google Translate proxy for western sources ───────────────
+const WESTERN_DOMAINS = ["bbc.com","bbc.co.uk","wsj.com","ft.com","aljazeera.com",
+  "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com"];
+
+function isEnglishSource(sourceName, link) {
+  const src = (sourceName||"").toLowerCase();
+  const url = (link||"").toLowerCase();
+  return WESTERN_DOMAINS.some(d => url.includes(d)) ||
+    ["wsj","bbc","ft","al jazeera","bloomberg","guardian","reuters"].some(n => src.includes(n));
+}
+
+function translatedLink(link, sourceName) {
+  if (!link) return link;
+  if (isEnglishSource(sourceName, link)) {
+    return "https://translate.google.com/translate?sl=en&tl=ru&u=" + encodeURIComponent(link);
+  }
+  return link;
+}
+
 function cardHTML(item) {
   const cat  = CATEGORIES.find(c=>c.id===item.cat) || CATEGORIES[1];
   const sc   = arguments[1] || getSubcat(item);
@@ -1584,7 +1612,7 @@ function cardHTML(item) {
         ${(item.raw||[{link:item.link,sourceName:(item.sources||[])[0]||""}])
           .filter((r,i,a)=>r.link && a.findIndex(x=>x.link===r.link)===i)
           .slice(0, 3)
-          .map(r=>`<a class="expand-open-btn" href="${(r.link||"").replace(/"/g,"&quot;")}" target="_blank" rel="noopener">
+          .map(r=>`<a class="expand-open-btn" href="${translatedLink(r.link, r.sourceName)}" target="_blank" rel="noopener">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             ${escHtml(r.sourceName||"Источник")}</a>`).join("")}
         <button class="expand-close" onclick="event.stopPropagation();collapseCard('${item.id}')">Свернуть ↑</button>
@@ -2334,7 +2362,7 @@ async function enrichNoKey(card, bodyEl, cardId) {
     // For longer Jina text — translate first 2000 chars in chunks of 500
     if (fromJina && text.length > 600) {
       const chunks = [];
-      for (let i = 0; i < Math.min(text.length, 2000); i += 500) {
+      for (let i = 0; i < Math.min(text.length, 4000); i += 500) {
         chunks.push(text.slice(i, i + 500));
       }
       const translated = await Promise.all(chunks.map(c => gtranslate(c, "ru")));
@@ -2346,9 +2374,19 @@ async function enrichNoKey(card, bodyEl, cardId) {
     }
   }
 
-  const display = cutAtSentence(text, 900);
+  const display = cutAtSentence(text, 1500);
   const bodyNow = document.getElementById("expand-body-" + cardId);
-  if (bodyNow) bodyNow.innerHTML = renderTextHTML(display, false, false);
+  if (bodyNow) {
+    const badge = (isWestern || (text && isTextEnglish(text)))
+      ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+           <span style="font-size:13px">🌐</span> Переведено с английского · 
+           <a href="${(card.raw||[{link:card.link}])[0].link}" target="_blank" 
+              style="color:var(--accent2);text-decoration:none" 
+              onclick="event.stopPropagation()">оригинал</a>
+         </div>`
+      : "";
+    bodyNow.innerHTML = badge + renderTextHTML(display, false, false);
+  }
 }
 
 // Cut text at a sentence boundary within maxChars — never mid-sentence
