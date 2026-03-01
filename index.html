@@ -243,7 +243,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .card-expand{margin-top:0;max-height:0;overflow:hidden;
   transition:max-height .4s cubic-bezier(.4,0,.2,1), margin-top .2s ease, padding-top .2s ease;
   border-top:0 solid var(--border)}
-.card.expanded .card-expand{max-height:600px;margin-top:14px;padding-top:14px;border-top-width:1px}
+.card.expanded .card-expand{max-height:2400px;margin-top:14px;padding-top:14px;border-top-width:1px}
 
 .expand-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:var(--accent2);display:flex;align-items:center;gap:6px;margin-bottom:12px}
@@ -500,6 +500,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   content: " 🌐";
   font-size: 10px;
   opacity: .7;
+}
+
+
+/* Expand body scrollable for long translated articles */
+#content .card.expanded [id^="expand-body-"] {
+  max-height: 600px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-right: 4px;
 }
 
 </style>
@@ -1717,17 +1727,27 @@ function toggleChat() {
 
 function initChatUI() {
   const msgs = document.getElementById("chat-messages");
-  if (!msgs || msgs.children.length > 0) return;
+  if (!msgs) return;
   const key = state.groqKey;
+
+  // If chat already has a real conversation — don't reset
+  if (msgs.querySelector(".chat-msg")) return;
+
+  // Clear any stale no-key placeholder
+  msgs.innerHTML = "";
+  const inputRow = document.getElementById("chat-input-row");
+
   if (!key) {
-    document.getElementById("chat-input-row").style.display = "none";
+    if (inputRow) inputRow.style.display = "none";
     msgs.innerHTML = `<div class="chat-no-key">
       Для чата добавьте бесплатный ключ Groq в
       <button class="siri-setup-btn" onclick="document.getElementById('api-panel').classList.add('open')">⚙ Настройки</button>
     </div>`;
     return;
   }
-  // Welcome message
+
+  // Key present — show input row and welcome
+  if (inputRow) inputRow.style.display = "";
   appendChatMsg("ai", "Привет! Я Groq с поиском в интернете. Могу искать актуальную информацию в сети и отвечать на вопросы по текущим новостям. Спрашивайте!");
 }
 
