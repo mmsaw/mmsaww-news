@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MMSAWW NEWS</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzFhMWEwZSIvPgogIDxyZWN0IHg9IjAiIHk9IjI3IiB3aWR0aD0iMzIiIGhlaWdodD0iMyIgcng9IjEiIGZpbGw9IiNiODk3MWYiLz4KICA8dGV4dCB4PSIxNiIgeT0iMjEiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjEzIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9Ii0wLjUiPk1NPC90ZXh0PgogIDx0ZXh0IHg9IjI1IiB5PSIyMSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNiODk3MWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk48L3RleHQ+Cjwvc3ZnPg==">
 
@@ -81,11 +81,97 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 @keyframes rot{to{transform:rotate(360deg)}}
 
 /* TIME FILTER BAR */
-.tbar{display:flex;align-items:center;gap:6px;padding:7px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
-.tbtn{padding:4px 14px;background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text3);transition:all .15s;white-space:nowrap}
-.tbtn:hover{border-color:var(--border2);color:var(--text)}
-.tbtn.on{background:var(--text);color:var(--surface);border-color:var(--text);font-weight:600}
-.tbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:4px}
+/* ─── UNIFIED FILTER BAR ──────────────────────────────────── */
+/*
+  Layout:
+  ┌─────────────────────────────────────────────────────────┐
+  │ Пресса [Все][🇷🇺 Рус][🌐 Зар]  │  Период [Сег][Вчера][Все] │ ← Row 1 (fixed)
+  ├─────────────────────────────────────────────────────────┤
+  │ Источники ● Коммерсант ● Forbes ● BBC ● Al Jazeera …→  │ ← Row 2 (scrollable)
+  └─────────────────────────────────────────────────────────┘
+  Mobile: same 2-row layout, smaller font
+*/
+.filterbar {
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Row 1: Press + Period */
+.filterbar-row1 {
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: nowrap; overflow-x: auto;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.filterbar-row1::-webkit-scrollbar { display: none; }
+
+/* Row 2: Sources — scrolls independently */
+.filterbar-row2 {
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 0;
+  position: relative; /* for fade overlay */
+  overflow: hidden;
+}
+.filterbar-row2-scroll {
+  display: flex; align-items: center; gap: 4px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 5px 0 5px 0;
+  flex: 1;
+}
+.filterbar-row2-scroll::-webkit-scrollbar { display: none; }
+/* Right fade hint for scrollable content */
+.filterbar-row2::after {
+  content: ""; pointer-events: none;
+  position: absolute; right: 0; top: 0; bottom: 0; width: 32px;
+  background: linear-gradient(to right, transparent, var(--surface));
+}
+
+.fgroup {
+  display: flex; align-items: center; gap: 3px;
+  padding: 5px 0; flex-shrink: 0;
+}
+
+.fgroup-label {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  margin-right: 3px; white-space: nowrap; flex-shrink: 0;
+  letter-spacing: .03em; text-transform: uppercase;
+}
+
+.fdivider {
+  width: 1px; height: 18px; background: var(--border);
+  margin: 0 10px; flex-shrink: 0;
+}
+
+.fbtn {
+  padding: 3px 10px; background: none;
+  border: 1px solid var(--border); border-radius: 20px;
+  cursor: pointer; font-family: var(--ui); font-size: 11px;
+  color: var(--text2); white-space: nowrap; transition: all .15s;
+  flex-shrink: 0; line-height: 1.5;
+}
+.fbtn:hover { border-color: var(--text3); color: var(--text); }
+.fbtn.on {
+  background: var(--text); color: var(--surface);
+  border-color: var(--text); font-weight: 600;
+}
+/* Source buttons slightly smaller */
+.srcfbtn {
+  font-size: 10.5px; padding: 2px 8px;
+}
+
+/* Mobile tweaks */
+@media (max-width: 600px) {
+  .filterbar-row1 { padding: 0 10px; }
+  .filterbar-row2 { padding: 0 10px; }
+  .fbtn  { font-size: 11px; padding: 3px 9px; }
+  .srcfbtn { font-size: 10px; padding: 2px 7px; }
+  .fgroup-label { font-size: 9px; margin-right: 2px; }
+  .fdivider { margin: 0 7px; }
+}
+
 
 /* SOURCE FILTER BAR */
 .srcbar{display:flex;align-items:center;gap:6px;padding:6px 28px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-wrap:wrap;transition:all .2s}
@@ -515,6 +601,86 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   padding-right: 4px;
 }
 
+
+/* New card badge */
+.card-new-badge {
+  display: inline-flex; align-items: center;
+  background: var(--accent); color: #fff;
+  font-size: 9px; font-weight: 800; letter-spacing: .06em;
+  padding: 2px 5px; border-radius: 3px; margin-left: 4px;
+  vertical-align: middle; animation: pulse-new 2s ease infinite;
+}
+@keyframes pulse-new {
+  0%,100% { opacity: 1; } 50% { opacity: .6; }
+}
+/* Clear storage button in refresh area */
+.clear-cache-btn {
+  font-size: 11px; color: var(--text3); background: none;
+  border: 1px solid var(--border2); border-radius: 4px;
+  padding: 3px 8px; cursor: pointer; font-family: var(--ui);
+}
+.clear-cache-btn:hover { color: var(--text); border-color: var(--text3); }
+
+
+/* Bloomberg widget */
+.blmb-wrap {
+  margin: 12px 24px 0;
+  background: var(--bg2);
+  border: 1px solid #1a3a5c;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.blmb-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; cursor: pointer;
+  user-select: none;
+}
+.blmb-head:hover { background: rgba(255,255,255,.03); }
+.blmb-logo {
+  font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  color: #2d8cf0; text-transform: uppercase; font-family: var(--ui);
+}
+.blmb-count {
+  font-size: 10px; color: var(--text3); flex: 1;
+}
+.blmb-chevron {
+  font-size: 10px; color: var(--text3); transition: transform .2s;
+}
+.blmb-wrap.open .blmb-chevron { transform: rotate(90deg); }
+.blmb-body {
+  padding: 0 10px 8px;
+  max-height: 340px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.blmb-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.blmb-item:last-child { border-bottom: none; }
+.blmb-item:hover .blmb-title { color: var(--accent2); }
+.blmb-time {
+  font-size: 9px; color: var(--text3); white-space: nowrap;
+  min-width: 32px; padding-top: 2px; font-family: var(--ui);
+}
+.blmb-title {
+  font-size: 12px; line-height: 1.4; color: var(--text);
+  transition: color .15s;
+}
+.blmb-title a {
+  color: inherit; text-decoration: none;
+}
+.blmb-title a:hover { color: var(--accent2); }
+
+
+
+/* PWA: prevent iOS zoom on input focus */
+.chat-input, input[type="text"], input[type="search"], textarea {
+  font-size: 16px !important;  /* iOS won't zoom if font-size >= 16px */
+  transform-origin: left top;
+}
+.fstatus{font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:6px;white-space:nowrap;animation:blink 1.5s infinite}
 </style>
 </head>
 <body>
@@ -562,21 +728,39 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   </div>
   <div class="fbar" id="fbar">
     <button class="rfbtn" onclick="loadAll()"><span>↻</span> Обновить</button>
+    <button class="clear-cache-btn" onclick="if(confirm('Очистить кэш новостей?'))clearStoredCards()" title="Удалить сохранённые новости">🗑 Кэш</button>
   </div>
 </header>
 
-<!-- TIME FILTER BAR -->
-<div class="tbar" id="tbar">
-  <span class="tbar-label">Период:</span>
-  <button class="tbtn on" id="tbtn-today" onclick="setTimeFilter('today')">Сегодня</button>
-  <button class="tbtn"    id="tbtn-prev"   onclick="setTimeFilter('prev')">Вчера и ранее</button>
-  <button class="tbtn" id="tbtn-all" onclick="setTimeFilter('all')">Все новости</button>
+<!-- UNIFIED FILTER BAR -->
+<div class="filterbar" id="filterbar">
+
+  <!-- Row 1: Press filter + Period filter -->
+  <div class="filterbar-row1">
+    <div class="fgroup">
+      <span class="fgroup-label">Пресса</span>
+      <button class="fbtn on" id="pfbtn-all"  onclick="setPressFilt('all')">Все</button>
+      <button class="fbtn"    id="pfbtn-ru"   onclick="setPressFilt('ru')">🇷🇺 Русская</button>
+      <button class="fbtn"    id="pfbtn-west" onclick="setPressFilt('west')">🌐 Зарубежная</button>
+    </div>
+    <div class="fdivider"></div>
+    <div class="fgroup">
+      <span class="fgroup-label">Период</span>
+      <button class="fbtn on" id="tbtn-today" onclick="setTimeFilter('today')">Сегодня</button>
+      <button class="fbtn"    id="tbtn-prev"  onclick="setTimeFilter('prev')">Вчера и ранее</button>
+      <button class="fbtn"    id="tbtn-all"   onclick="setTimeFilter('all')">Все новости</button>
+    </div>
+  </div>
+
+  <!-- Row 2: Source buttons (scrollable) -->
+  <div class="filterbar-row2">
+    <span class="fgroup-label" style="flex-shrink:0;padding:5px 6px 5px 0">Источники</span>
+    <div class="filterbar-row2-scroll" id="sources-inline"></div>
+  </div>
+
 </div>
 
-<!-- SOURCE FILTER BAR -->
-<div class="srcbar collapsed" id="srcbar">
-  <button class="srcbar-toggle" id="srcbar-toggle" onclick="toggleSrcBar()" title="Показать/скрыть источники">Источники ▾</button>
-</div>
+
 
 <!-- STATUS BAR (hidden — info moved to srcbar) -->
 <div id="sbar" style="display:none"></div>
@@ -614,12 +798,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   <div class="ticker-inner" id="ticker-inner"></div>
 </div>
 
+
+<!-- BLOOMBERG WIDGET -->
+<div class="blmb-wrap" id="blmb-wrap" style="display:none">
+  <div class="blmb-head" onclick="toggleBloomberg()">
+    <span class="blmb-logo">Bloomberg</span>
+    <span class="blmb-count" id="blmb-count"></span>
+    <span class="blmb-chevron" id="blmb-chevron">▸</span>
+  </div>
+  <div class="blmb-body" id="blmb-body" style="display:none"></div>
+</div>
+
 <!-- SIRI AI WIDGET -->
 <div class="siri-wrap idle" id="siri-wrap" style="display:none">
   <div class="siri-inner">
     <div class="siri-head" onclick="toggleSiriBody()">
       <div class="siri-orb">✦</div>
-      <span class="siri-title">Сводка дня</span>
+      <span class="siri-title">Резюме за вчера</span>
       <span class="siri-badge neutral" id="siri-badge"></span>
       <button class="siri-regen" id="siri-regen" onclick="event.stopPropagation();regenSentiment()" style="display:none" title="Обновить">↺</button>
       <span class="siri-chevron" id="siri-chevron">▼</span>
@@ -669,10 +864,8 @@ const CATEGORIES = [
   { id:"all",         label:"Все",               color:"#e8d5a3" },
   { id:"geopolitics", label:"Геополитика",        color:"#f87171" },
   { id:"finance",     label:"Финансы",            color:"#34d399" },
-  { id:"conflict",    label:"РФ–Украина",         color:"#fb923c" },
   { id:"tech",        label:"Технологии",         color:"#a78bfa" },
-  { id:"crypto",      label:"Крипта",             color:"#f7931a" },
-  { id:"other",       label:"Остальное",          color:"#94a3b8" },
+  { id:"lifestyle",   label:"Лайфстайл",          color:"#e879f9" },
   { id:"local",       label:"Ярославль & Москва", color:"#60a5fa" },
 ];
 
@@ -716,6 +909,13 @@ const SOURCES = [
   // ── Западные ─────────────────────────────────────────────────────────────
   {
     urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:forbes.com&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=when:2d+allinurl:forbes.com&hl=en&gl=US&ceid=US:en",
+    ],
+    name:"Forbes US", country:"west", maxAgeDays:2
+  },
+  {
+    urls: [
       "https://feeds.bbci.co.uk/news/world/rss.xml",
       "https://feeds.bbci.co.uk/news/rss.xml?edition=int",
       "https://feeds.bbci.co.uk/news/rss.xml",
@@ -726,32 +926,12 @@ const SOURCES = [
   },
   {
     urls: [
-      // WSJ: feeds.a.dj.com → feeds.content.dowjones.io (new domain)
-      "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
-      "https://feeds.content.dowjones.io/public/rss/RSSWSJD",
-      "https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:wsj.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"WSJ", country:"west"
-  },
-  {
-    urls: [
       "https://www.aljazeera.com/xml/rss/all.xml",
       "https://www.aljazeera.com/xml/rss/world.xml",
       "https://www.aljazeera.com/xml/rss/middleeast.xml",
       "https://news.google.com/rss/search?q=when:1d+allinurl:aljazeera.com&hl=en&gl=US&ceid=US:en",
     ],
     name:"Al Jazeera", country:"west"
-  },
-  {
-    urls: [
-      "https://www.ft.com/rss/home",
-      "https://www.ft.com/world?format=rss",
-      "https://www.ft.com/markets?format=rss",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:ft.com&hl=en&gl=GB&ceid=GB:en",
-      "https://news.google.com/rss/search?q=site:ft.com+world&hl=en&gl=GB&ceid=GB:en",
-    ],
-    name:"FT", country:"west"
   },
 
   // ── Bloomberg (via Google News — официальный RSS Bloomberg закрыт)
@@ -761,7 +941,7 @@ const SOURCES = [
       "https://news.google.com/rss/search?q=when:2d+allinurl:bloomberg.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=bloomberg+markets+finance&hl=en&gl=US&ceid=US:en",
     ],
-    name:"Bloomberg", country:"west", maxAgeDays:3
+    name:"Bloomberg", country:"west", maxAgeDays:3, bloombergOnly:true
   },
   // ── Reuters (официальный RSS закрыт в 2020 — Google News единственный способ)
 
@@ -810,6 +990,7 @@ let state = {
   filter: "all",
   timeFilter: "today",   // "today" | "all"
   srcFilter: new Set(),  // empty = show all; non-empty = show only these sources
+  pressFilt: "all",       // "all" | "ru" | "west"
   lang: "ru",            // "ru" | "en"
   srcStatus: {},
   loading: false,
@@ -844,35 +1025,25 @@ function formatTime(d) {
 // ── FALLBACK keyword rules (used when no API key) ───────────────────────────
 // Strict: each category has explicit EXCLUDE patterns too
 const KW = {
-  // RF-Ukraine: ONLY direct military conflict, front, strikes, negotiations RF<->UA
-  conflict: {
-    include: /украин|ukraine|зсу|всу|нато.*украин|украин.*нато|фронт.*украин|украин.*фронт|обстрел.*украин|украин.*обстрел|наступлен.*украин|украин.*наступлен|контрнаступ|мариупол|харьков|запорожье|херсон|донбасс|донецк|луганск|бахмут|авдеевк|kharkiv|zaporizhzhia|kherson|donbas|donetsk|bakhmut|zelenskyy|зеленськ|переговоры.*украин|украин.*переговоры|ceasef|перемир.*украин|украин.*перемир/i,
-    exclude: /иран|iran|израил|israel|газа|gaza|китай|china|сирия|syria|йемен|yemen|финанс|санкц(?!.*украин)|бирж|ставк|инфляц|пакистан|pakistan|афганистан|afghanistan|индия|india|ливан|lebanon|ирак|iraq|дубай|dubai|йемен|houthi/i,
-  },
-  // Geopolitics: international relations, OTHER conflicts, diplomacy (not RF-UA war, not finance)
+  // Geopolitics: ALL international/military/political
   geopolitics: {
-    include: /иран|iran|израил|israel|газа|gaza|китай|china|сша|США|usa|us.*politi|трамп|trump|байден|biden|нато|nato|ООН|un|g7|g20|макрон|macron|шольц|scholz|дипломат|посольств|мид|госдеп|state dept|венесуэл|venezuela|сирия|syria|йемен|yemen|северн.*коре|north korea|пакистан|pakistan|тайван|taiwan|африк.*конфликт|талиб|taliban|саммит|summit|договор|treaty|санкц.*иран|санкц.*китай/i,
-    exclude: /украин.*фронт|фронт.*украин|обстрел украин|наступлен.*украин|рубль|доллар|биржа|инфляц|ставк|ВВП|gdp|акци|облигац/i,
+    include: /украин|ukraine|зсу|всу|обстрел|наступлен|фронт|донецк|луганск|харьков|запорожье|херсон|донбасс|бахмут|zelenskyy|зеленськ|ceasefire|перемир|иран|iran|израил|israel|газа|gaza|хамас|хезболл|хуситы|houthi|китай|china|сша|США|\busa\b|трамп|trump|байден|biden|нато|nato|ООН|\bun\b|g7|g20|макрон|macron|шольц|scholz|мид\b|госдеп|дипломат|посольств|саммит|summit|договор|treaty|санкц|военн.*операц|спецоперац|северн.*коре|north korea|тайван|taiwan|сирия|syria|йемен|yemen|талиб|taliban|пакистан|pakistan|ракетн.*удар|авиаудар|бомбардир|беженц|переговоры.*мир|мирн.*переговоры/i,
+    exclude: /курс.*рубл|рубль.*курс|биржа открыл|инфляц.*%|ВВП.*вырос|gdp.*growth|\bipo\b|акци.*упал|прибыл.*компани|chatgpt|нейросет|смартфон.*выпуск|квартальн.*отчет|выручк.*млрд/i,
   },
-  // Finance: strictly economic/financial — no military, no political conflicts
+  // Finance: markets, economy, crypto
   finance: {
-    include: /рубль|доллар|евро|dollar|euro|биржа|инфляц|ВВП|gdp|цент.*банк|ЦБ|фрс|fed|акци|stock|нефть|brent|wti|природ.*газ|рынок|market|банк.*отчет|отчет.*банк|инвест|invest|крипт|crypto|биткоин|bitcoin|ключев.*ставк|процент.*ставк|облигац|облигации|тариф.*торгов|торгов.*тариф|пошлин|tariff|trade.*deal|сделк|слияни|поглощени|ipo|мвф|imf|всемир.*банк|world bank|бюджет.*дефицит|дефицит.*бюджет|форекс|forex|деривати|фьючерс|индекс.*цен|цен.*индекс|себестоимост|прибыл.*компани|выручк|финанс.*отчет|квартальн.*результ/i,
-    exclude: /украин.*обстрел|обстрел.*украин|военн.*операц|фронт|иран.*ракет|ракет.*иран|политич.*кризис|переворот|революц/i,
+    include: /рубль|доллар|евро\b|dollar|euro\b|биржа|инфляц|ВВП|gdp|цент.*банк|ЦБ\b|фрс\b|\bfed\b|акци|stock|нефть|brent|\bwti\b|газ.*цен|цен.*газ|рынок|market|банк.*отчет|инвест|крипт|crypto|биткоин|bitcoin|\bbtc\b|ethereum|\beth\b|defi|nft\b|binance|coinbase|solana|halving|staking|майнинг|ключев.*ставк|процент.*ставк|облигац|пошлин|tariff|сделк.*млрд|слияни|поглощени|\bipo\b|мвф|imf|бюджет.*дефицит|форекс|фьючерс|прибыл.*млрд|выручк|финанс.*отчет|квартальн.*результ/i,
+    exclude: /военн.*операц|ракетн.*удар|фронт|обстрел.*жертв|авиаудар|переговоры.*мир/i,
   },
-  // Tech: AI, software, hardware, startups, cyber, space
+  // Tech: AI, hardware, startups, cyber, biotech
   tech: {
-    include: /искусств.*интеллект|нейросет|chatgpt|openai|anthropic|deepseek|gemini ai|llm|gpt|ии|ai|кибератак|хакер|утечка данных|data breach|кибербезопасност|cybersecurity|квантов|квант|tesla|spacex|starlink|neuralink|nvidia|intel|amd|apple|microsoft|google|meta|amazon|alibaba|huawei|samsung|роботизац|робот|дрон.*технолог|беспилотн.*технолог|стартап|startup|венчур|ipo.*tech|биотех|biotech|фармацевт.*разработ|блокчейн|blockchain|криптовалют|nft|интернет.*вещей|iot|5g|6g|квантов.*компьют|суперкомпьют|чипмейкер|полупроводник|semiconductor|процессор|смартфон.*выпуск|планшет.*выпуск|соцсеть.*алгоритм|цифров.*трансформ|автопилот.*авто|электромобил/i,
-    exclude: /украин|фронт|обстрел|рубль.*курс|биржа|акци.*упал|акци.*вырос/i,
+    include: /искусств.*интеллект|нейросет|chatgpt|openai|anthropic|deepseek|gemini|llm|\bgpt\b|\bии\b|\bai\b|кибератак|хакер|утечка данных|data breach|кибербезопасност|квантов|tesla|spacex|starlink|nvidia|intel|amd|apple.*выпуст|microsoft|google.*продукт|meta\b.*функц|amazon.*технолог|alibaba|huawei|samsung.*модел|робот|беспилотн.*аппарат|стартап|startup|венчур|биотех|biotech|полупроводник|semiconductor|смартфон.*выпуск|электромобил|электрокар|\b5g\b|\b6g\b/i,
+    exclude: /украин|фронт|обстрел|военн.*операц/i,
   },
-  // Crypto
-  crypto: {
-    include: /биткоин|bitcoin|\bbtc\b|ethereum|\beth\b|крипт|блокчейн|blockchain|токен|defi|nft|web3|altcoin|альткоин|binance|coinbase|bybit|solana|ripple|xrp|dogecoin|doge|\bcrypto\b|криптовалют|майнинг|mining|staking|стейкинг|airdrop|\bico\b|halving|халвинг|satoshi/i,
-    exclude: /^$/i,
-  },
-  // Other: everything that doesn't fit — lifestyle, sport, culture, crime, social
-  other: {
-    include: /.*/,   // catch-all — assigned last in fallback
-    exclude: /^$/,   // never exclude (empty pattern)
+  // Lifestyle: catch-all
+  lifestyle: {
+    include: /.*/,
+    exclude: /^$/,
   },
 };
 
@@ -880,26 +1051,23 @@ const KW = {
 // "local" is NEVER assigned here — only tag-based sources can ever be local
 function categorizeFallback(title, desc) {
   const t = (title + " " + desc).toLowerCase();
-  if (KW.conflict.include.test(t)    && !KW.conflict.exclude.test(t))    return "conflict";
-  if (KW.crypto.include.test(t)      && !KW.crypto.exclude.test(t))      return "crypto";
-  if (KW.finance.include.test(t)     && !KW.finance.exclude.test(t))     return "finance";
   if (KW.geopolitics.include.test(t) && !KW.geopolitics.exclude.test(t)) return "geopolitics";
+  if (KW.finance.include.test(t)     && !KW.finance.exclude.test(t))     return "finance";
   if (KW.tech.include.test(t)        && !KW.tech.exclude.test(t))        return "tech";
-  return "other";  // everything else goes to Остальное
+  return "lifestyle";  // sport, culture, crime, health — everything else
 }
 
 // ── AI BATCH CATEGORIZER ─────────────────────────────────────────────────────
 // RULE: "local" is NOT in AI output — local category is 100% source-gated
-const CAT_PROMPT = `Ты редактор новостного агрегатора. Классифицируй каждую новость строго по одной из ТРЁХ категорий — не более:
+const CAT_PROMPT = `Ты редактор новостного агрегатора. Классифицируй каждую новость по одной из четырёх категорий:
 
-"conflict"     — ТОЛЬКО прямые военные действия РФ vs Украина: фронт, обстрелы, наступления, потери, переговоры именно РФ-Украина. Ничего другого.
-"geopolitics"  — международные отношения (Иран, Китай, Израиль, США, НАТО, G7, ООН и др.), дипломатия, санкции против третьих стран. НЕ финансы. НЕ РФ-Украина война.
-"finance"      — исключительно экономика: ставки ЦБ, биржи, курсы валют, нефть/газ как товар, отчёты компаний, сделки, крипто, тарифы как торговые инструменты. НЕ политика, НЕ война.
-"crypto"       — криптовалюты, Bitcoin, Ethereum, блокчейн, DeFi, NFT, биржи крипты, токены.
-"skip"         — всё остальное: спорт, культура, погода, криминал, городские события, ДТП, ЖКХ.
+"geopolitics"  — ВСЁ военное и политическое: Украина, Иран, Израиль, Китай, США, НАТО, ООН, санкции, войны, конфликты, дипломатия, выборы мировых лидеров.
+"finance"      — экономика и деньги: биржи, курсы валют, ЦБ, ставки, нефть/газ как товар, отчёты компаний, крипто, сделки M&A, тарифы, ВВП, инфляция.
+"tech"         — технологии: ИИ, ПО, железо, стартапы, кибербезопасность, космос, электромобили, биотех.
+"lifestyle"    — всё остальное: спорт, культура, криминал, здоровье, общество, люди, погода, ДТП, ЖКХ.
 
 Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
-[{"i":0,"cat":"finance"},{"i":1,"cat":"skip"},...]`;
+[{"i":0,"cat":"finance"},{"i":1,"cat":"lifestyle"},...]`;
 
 async function classifyBatch(items, apiKey) {
   const lines = items.map((it, i) =>
@@ -953,7 +1121,7 @@ async function categorizeWithAI(rawItems, apiKey) {
   const classified = nonLocalItems.map((it, idx) => {
     const cat = catMap[idx];
     // Hard block: if AI somehow returns "local" — discard entirely
-    if (!cat || cat === "other" || cat === "local") return null;
+    if (!cat || cat === "lifestyle" || cat === "local") return null;
     return { ...it, cat };
   }).filter(Boolean);
 
@@ -1040,7 +1208,7 @@ async function fetchSource(src) {
           out.push({
             title: title.trim(), description: title.trim(), link,
             date: new Date(Date.now() - count * 3600000),
-            cat: src.cat || "crypto",
+            cat: src.cat || "finance",
             sourceName: src.name, sourceCountry: src.country,
             tag: null, isTg: false
           });
@@ -1075,7 +1243,7 @@ async function fetchSource(src) {
     const out  = [];
     let idx = 0;
     els.forEach(el => {
-      if (idx++ >= 30) return;
+      if (idx++ >= 50) return;
       const title = strip(cdata(el.querySelector("title")?.textContent));
       const desc  = strip(cdata(
         el.querySelector("description")?.textContent ||
@@ -1110,7 +1278,11 @@ async function fetchSource(src) {
 // ═══════════════════════════════════════════════════════════
 
 function tokenSet(s) {
-  return new Set(s.toLowerCase().replace(/[^а-яёa-z0-9]/gi," ").split(/\s+/).filter(w=>w.length>3));
+  const clean = s.toLowerCase()
+    .replace(/[«»""„‟]/g," ")
+    .replace(/[^а-яёa-z0-9]/gi," ")
+    .replace(/\b(сообщает|сообщил|заявил|рассказал|объявил|тасс|риа|reuters|bloomberg|afp)\b/g," ");
+  return new Set(clean.split(/\s+/).filter(w => w.length > 3));
 }
 function jaccard(a, b) {
   const sa=tokenSet(a), sb=tokenSet(b);
@@ -1125,7 +1297,7 @@ function groupArticles(items) {
     const g=[items[i]]; used.add(i);
     for (let j=i+1; j<items.length; j++) {
       if (used.has(j)) continue;
-      if (jaccard(items[i].title, items[j].title) >= 0.22) { g.push(items[j]); used.add(j); }
+      if (jaccard(items[i].title, items[j].title) >= 0.35) { g.push(items[j]); used.add(j); }
     }
     groups.push(g);
   }
@@ -1200,9 +1372,141 @@ async function synthesize(card) {
 // MAIN LOAD
 // ═══════════════════════════════════════════════════════════
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// CARD PERSISTENCE — localStorage so cards survive refresh
+// ════════════════════════════════════════════════════════════════════════════
+const STORE_KEY   = "mmsaww_cards_v2";
+const STORE_MAX_H = 48;   // keep cards up to 48 hours
+
+function saveCards(cards) {
+  try {
+    const payload = cards.map(c => ({
+      id: c.id, title: c.title, title_ru: c.title_ru,
+      summary: c.summary, summary_ru: c.summary_ru,
+      cat: c.cat, tag: c.tag, sources: c.sources, link: c.link,
+      date: c.date?.toISOString?.() || c.date,
+      time: c.time, needsTranslation: c.needsTranslation,
+      synthesized: c.synthesized, firstSeen: c.firstSeen || Date.now(),
+      raw: (c.raw||[]).map(r=>({
+        title: r.title, description: r.description,
+        link: r.link, sourceName: r.sourceName,
+        sourceCountry: r.sourceCountry, tag: r.tag
+      }))
+    }));
+    localStorage.setItem(STORE_KEY, JSON.stringify(payload));
+  } catch(e) { /* quota exceeded — silently ignore */ }
+}
+
+// Sources removed from the app — purge their cards from cache
+const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters","DropsCapital"]);
+
+function loadStoredCards() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return [];
+    const cutoff = Date.now() - STORE_MAX_H * 3600000;
+    return JSON.parse(raw)
+      .filter(c => {
+        const d = new Date(c.date).getTime();
+        if (isNaN(d) || d <= cutoff) return false;
+        // Drop card if ALL its sources are dead
+        const srcs = c.sources || [];
+        if (srcs.length > 0 && srcs.every(s => DEAD_SOURCES.has(s))) return false;
+        return true;
+      })
+      .map(c => ({
+        ...c,
+        date: new Date(c.date),
+        perspectives: null,
+        // Strip dead sources from mixed-source cards
+        sources: (c.sources || []).filter(s => !DEAD_SOURCES.has(s)),
+      }));
+  } catch(e) { return []; }
+}
+
+
+const READ_KEY = "mmsaww_read_v1";
+
+function getReadSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]")); }
+  catch(e) { return new Set(); }
+}
+
+function markCardRead(link) {
+  if (!link) return;
+  const s = getReadSet();
+  s.add(link);
+  // Keep only last 500 read links to avoid bloat
+  const arr = [...s].slice(-500);
+  try { localStorage.setItem(READ_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+function isReadCard(link) {
+  if (!link) return false;
+  return getReadSet().has(link);
+}
+
+function mergeWithStored(freshCards) {
+  const stored = loadStoredCards();
+  const cutoff  = Date.now() - STORE_MAX_H * 3600000;
+  const now     = Date.now();
+  const NEW_THRESHOLD = 15 * 60 * 1000;  // 15 min = "new" badge
+
+  // Build lookup by primary link
+  const byLink = new Map();
+  stored.forEach(c => {
+    const key = (c.link || c.id || "").toLowerCase();
+    if (key) byLink.set(key, c);
+    // Also index by all raw links
+    (c.raw||[]).forEach(r => {
+      if (r.link) byLink.set(r.link.toLowerCase(), c);
+    });
+  });
+
+  const merged = [...stored];
+
+  for (const card of freshCards) {
+    const key = (card.link || "").toLowerCase();
+    // Check if any raw link matches stored
+    const rawLinks = (card.raw||[]).map(r => (r.link||"").toLowerCase()).filter(Boolean);
+    const exists = byLink.has(key) || rawLinks.some(l => byLink.has(l));
+    if (!exists) {
+      // Brand new card
+      card.firstSeen = now;
+      card.isNew = !isReadCard(card.link);  // only new if not already read
+      merged.push(card);
+      // Index it
+      if (key) byLink.set(key, card);
+      rawLinks.forEach(l => byLink.set(l, card));
+    } else {
+      // Existing card — update sources list if new source joined the cluster
+      const existing = byLink.get(key) || byLink.get(rawLinks[0]);
+      if (existing) {
+        const newSrcs = (card.sources||[]).filter(s => !(existing.sources||[]).includes(s));
+        if (newSrcs.length) existing.sources = [...(existing.sources||[]), ...newSrcs];
+        // Update isNew status based on read state
+        existing.isNew = !isReadCard(existing.link);
+      }
+    }
+  }
+
+  // Prune old cards + sort
+  return merged
+    .filter(c => new Date(c.date).getTime() > cutoff)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function clearStoredCards() {
+  try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+  state.cards = [];
+  renderContent();
+}
+
 async function loadAll() {
   const run = ++state.runId;
   state.cards = [];
+  state.bloombergItems = state.bloombergItems || [];
   state.loading = true;
   state.synthCount = 0;
   state.synthTotal = 0;
@@ -1231,14 +1535,47 @@ async function loadAll() {
   state.lastUpdated = new Date();
   setRefreshState(false);
 
-  const allItems = results.flat();
+  const allItems = results.flat().filter(it => {
+    const src = SOURCES.find(s => s.name === it.sourceName);
+    if (src?.bloombergOnly) {
+      // Stash bloomberg items separately, don't add to main feed
+      state.bloombergItems = state.bloombergItems || [];
+      if (!state.bloombergItems.find(x => x.link === it.link)) {
+        state.bloombergItems.push(it);
+      }
+      return false;
+    }
+    return true;
+  });
+  state.bloombergItems = (state.bloombergItems || [])
+    .sort((a,b) => b.date - a.date)
+    .slice(0, 30);
+  renderBloombergWidget();
+  // Translate Bloomberg titles to Russian in background
+  if (state.lang === "ru") {
+    (state.bloombergItems || []).forEach(async it => {
+      if (!it.title_ru && it.title) {
+        const tr = await gtranslate(it.title, "ru");
+        if (tr) { it.title_ru = tr; renderBloombergWidget(); }
+      }
+    });
+  }
+
+  // ── Global title dedup: remove near-identical headlines across sources
+  const _dedupSeen = new Map();
+  const dedupedItems = allItems.filter(it => {
+    const key = (it.title||"").toLowerCase().replace(/[^а-яёa-z0-9]/gi,"").slice(0,60);
+    if (_dedupSeen.has(key)) return false;
+    _dedupSeen.set(key, true);
+    return true;
+  });
 
   // ── Categorize: AI if key available, else fallback regex ──────────────────
   let categorized;
   {
     // No API key: local = tagged sources only, others get regex fallback
-    const localFallback    = allItems.filter(it => it.tag);
-    const nonLocalFallback = allItems.filter(it => !it.tag);
+    const localFallback    = dedupedItems.filter(it => it.tag);
+    const nonLocalFallback = dedupedItems.filter(it => !it.tag);
     const classifiedFallback = nonLocalFallback.map(it => {
       const cat = categorizeFallback(it.title, it.description);
       return cat ? { ...it, cat } : null;
@@ -1254,11 +1591,13 @@ async function loadAll() {
 
   const raw = [];
   Object.entries(byCat).forEach(([,items]) => {
-    groupArticles(items).slice(0,10).forEach(g => raw.push(makeCard(g)));
+    groupArticles(items).slice(0,20).forEach(g => raw.push(makeCard(g)));
   });
   raw.sort((a,b) => b.date-a.date);
 
-  state.cards = raw;
+  // ── Persist + merge with stored cards ────────────────────────────────────
+  state.cards = mergeWithStored(raw);
+  saveCards(state.cards);
   renderHeader();
   renderTicker();
   renderContent();
@@ -1475,33 +1814,60 @@ function renderHeader() {
 }
 
 
-function toggleSrcBar() {
-  const bar = document.getElementById("srcbar");
-  if (!bar) return;
-  bar.classList.toggle("collapsed");
-  renderStatusBar();
+function toggleSrcBar() { /* merged into filterbar */ }
+
+function toggleBloomberg() {
+  const wrap = document.getElementById("blmb-wrap");
+  const body = document.getElementById("blmb-body");
+  const chev = document.getElementById("blmb-chevron");
+  if (!wrap) return;
+  const open = wrap.classList.toggle("open");
+  if (body) body.style.display = open ? "" : "none";
+}
+
+function renderBloombergWidget() {
+  const wrap  = document.getElementById("blmb-wrap");
+  const body  = document.getElementById("blmb-body");
+  const count = document.getElementById("blmb-count");
+  if (!wrap) return;
+  const items = state.bloombergItems || [];
+  if (!items.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  if (count) count.textContent = items.length + " заголовков";
+  if (!body) return;
+  body.innerHTML = items.map(it => {
+    const t = it.title_ru || it.title || "";
+    const link = translatedLink(it.link, it.sourceName);
+    const time = it.date ? formatTime(it.date) : "";
+    return `<div class="blmb-item">
+      <span class="blmb-time">${time}</span>
+      <span class="blmb-title"><a href="${escHtml(link)}" target="_blank"
+        rel="noopener" onclick="event.stopPropagation()">${escHtml(t)}</a></span>
+    </div>`;
+  }).join("");
 }
 function renderStatusBar() {
-  const srcbar = document.getElementById("srcbar");
-  if (!srcbar) return;
-  const isCollapsed = srcbar.classList.contains("collapsed");
-  const toggleLabel = isCollapsed ? "Источники ▸" : "Источники ▾";
-  let html = `<button class="srcbar-toggle" onclick="toggleSrcBar()">${toggleLabel}</button>`;
-  if (isCollapsed) { srcbar.innerHTML = html; return; }
+  const el = document.getElementById("sources-inline");
+  if (!el) return;
   const anyActive = state.srcFilter.size > 0;
+  let h = "";
   SOURCES.forEach(s => {
     const st = state.srcStatus[s.name] || "load";
     const on = state.srcFilter.has(s.name) ? " on" : "";
-    html += `<button class="srcbtn ${st}${on}" onclick="toggleSrcFilter('${s.name}')"><span class="srcdot"></span>${s.name}</button>`;
+    const dot = st === "ok" ? "\u25cf" : st === "err" ? "\u25cb" : "\u22ef";
+    const dotColor = st === "ok" ? "color:var(--green)" : st === "err" ? "color:var(--red)" : "color:var(--text3)";
+    h += "<button class=\"fbtn srcfbtn" + on + "\" onclick=\"toggleSrcFilter('" + s.name + "')\">"
+       + "<span style=\"font-size:7px;" + dotColor + ";\">" + dot + "</span> " + s.name + "</button>";
   });
-  if (anyActive) html += `<button class="src-clear" onclick="clearSrcFilter()">✕ сбросить</button>`;
+  if (anyActive) h += "<button class=\"fbtn\" onclick=\"clearSrcFilter()\" style=\"color:var(--red);border-color:var(--red)\">\u2715 сброс</button>";
+  let statusHtml = "";
   if (state.classifying)
-    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">🧠 Классификация…</span>`;
+    statusHtml = "<span class=\"fstatus\">\uD83E\uDDE0 Классификация\u2026</span>";
   else if (state.translating)
-    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--blue);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">🌐 Перевод…</span>`;
-  else if (state.synthTotal>0 && state.synthCount<state.synthTotal)
-    html += `<span style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:auto;white-space:nowrap;animation:blink 1.5s infinite">⟳ Синтез ${state.synthCount}/${state.synthTotal}</span>`;
-  srcbar.innerHTML = html;
+    statusHtml = "<span class=\"fstatus\">\uD83C\uDF10 Перевод\u2026</span>";
+  else if (state.synthTotal > 0 && state.synthCount < state.synthTotal)
+    statusHtml = "<span class=\"fstatus\">\u27F3 Синтез " + state.synthCount + "/" + state.synthTotal + "</span>";
+  el.innerHTML = h + statusHtml;
 }
 
 function renderTicker() {
@@ -1534,8 +1900,24 @@ function visibleCards(allCards) {
   if (state.srcFilter.size > 0) {
     cards = cards.filter(c => c.sources && c.sources.some(s => state.srcFilter.has(s)));
   }
+  if (state.pressFilt === "ru") {
+    const ruSet = new Set(SOURCES.filter(s => s.country === "ru").map(s => s.name));
+    cards = cards.filter(c => (c.sources || []).some(s => ruSet.has(s)));
+  } else if (state.pressFilt === "west") {
+    const westSet = new Set(SOURCES.filter(s => s.country === "west").map(s => s.name));
+    cards = cards.filter(c => (c.sources || []).some(s => westSet.has(s)));
+  }
   return cards;
 }
+function setPressFilt(val) {
+  state.pressFilt = val;
+  ["all","ru","west"].forEach(v => {
+    const b = document.getElementById("pfbtn-" + v);
+    if (b) b.classList.toggle("on", v === val);
+  });
+  renderContent();
+}
+
 function setTimeFilter(val) {
   state.timeFilter = val;
   document.getElementById("tbtn-today").classList.toggle("on", val==="today");
@@ -1692,7 +2074,7 @@ function cardHTML(item) {
       <div class="ctags">${catBadge}${tagBadge}${synthBadge}${srcCnt}${transLabel}</div>
       <span class="ctime">${item.time}</span>
     </div>
-    <h3 class="ctitle">${escHtml(dTitle)}</h3>
+    <h3 class="ctitle">${escHtml(dTitle)}${item.isNew ? '<span class="card-new-badge">NEW</span>' : ""}</h3>
     ${perspHTML}
     ${chips ? `<div class="csrcs">${chips}</div>` : ""}
     <div class="card-expand" id="expand-${item.id}">
@@ -1875,15 +2257,18 @@ async function sendChat() {
   appendChatMsg("user", text);
   chatHistory.push({ role: "user", content: text });
 
-  // Build system context with today's headlines
-  const headlines = state.cards.slice(0, 30).map((c, i) =>
-    `${i+1}. [${c.cat||"?"}] ${c.title}`
+  // Build system context — short and tight to avoid 413
+  const headlines = state.cards.slice(0, 10).map((c, i) =>
+    `${i+1}. ${(c.title_ru || c.title || "").slice(0, 70)}`
   ).join("\n");
 
-  const systemPrompt = `Ты умный ассистент для новостного агрегатора MMSAWW NEWS.
-У тебя есть доступ к поиску в интернете — используй его для актуальных вопросов о событиях, переговорах, ценах, персонах и всём, что могло измениться недавно.
-Сегодня на странице загружены следующие новости:\n${headlines}\n
-Отвечай на русском языке. Будь краток и конкретен. При использовании поиска укажи источник. Максимум 250 слов.`;
+  const systemPrompt = `Ты ассистент MMSAWW NEWS. Отвечай по-русски, кратко.\nНовости сегодня:\n${headlines}`;
+
+  // Cap history: last 4 messages, user≤300 chars, assistant≤150 chars (search replies are huge)
+  const trimmedHistory = chatHistory.slice(-4).map(m => ({
+    role: m.role,
+    content: (m.content || "").slice(0, m.role === "assistant" ? 150 : 300)
+  }));
 
   const loadingId = "chat-msg-" + Date.now();
   appendChatMsg("ai", "…", loadingId);
@@ -1895,10 +2280,10 @@ async function sendChat() {
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
         body: JSON.stringify({
           model: "compound-beta",
-          max_tokens: 1024,
+          max_tokens: 600,
           messages: [
             { role: "system", content: systemPrompt },
-            ...chatHistory.slice(-10)   // last 10 messages for context
+            ...trimmedHistory
           ]
         })
       }),
@@ -1920,7 +2305,8 @@ async function sendChat() {
       reply = (rawContent || "").trim() || "Нет ответа";
     }
     updateChatMsg(loadingId, reply);
-    chatHistory.push({ role: "assistant", content: reply });
+    // Store truncated reply — prevents history snowball (413)
+    chatHistory.push({ role: "assistant", content: reply.slice(0, 150) });
   } catch (e) {
     updateChatMsg(loadingId, "Ошибка: " + (e.message || "нет ответа"));
   } finally {
@@ -2116,6 +2502,11 @@ function triggerSentiment() {
 }
 
 function regenSentiment() {
+  // Clear yesterday's cache key so a fresh summary is generated
+  try {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    localStorage.removeItem("siri_" + y.toISOString().slice(0, 10));
+  } catch(e) {}
   state.sentimentDone = false;
   generateSentiment(state.cards);
 }
@@ -2136,7 +2527,7 @@ async function generateSentiment(cards) {
   if (m === "off" || !key) {
     wrap.classList.add("idle");
     body.innerHTML = `<div class="siri-no-key">
-      Для сводки дня добавьте бесплатный ключ Groq
+      Для резюме добавьте ключ Groq
       <button class="siri-setup-btn" onclick="document.getElementById('api-panel').classList.add('open')">⚙ Настройки</button>
     </div>`;
     body.classList.add("open");
@@ -2144,77 +2535,118 @@ async function generateSentiment(cards) {
     return;
   }
 
-  // Show loading animation
-  body.innerHTML = `<div class="siri-loading"><div class="siri-dots"><span></span><span></span><span></span><span></span><span></span></div> анализирую новости…</div>`;
+  // Check daily cache keyed by yesterday's date
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yKey = "siri_" + yesterday.toISOString().slice(0, 10);
+  const cached = (() => {
+    try { return JSON.parse(localStorage.getItem(yKey) || "null"); } catch(e) { return null; }
+  })();
+  if (cached && cached.html) {
+    body.innerHTML = cached.html;
+    badge.textContent = cached.badge || "";
+    badge.className   = "siri-badge " + (cached.bc || "neutral");
+    body.classList.add("open");
+    siriBodyOpen = true;
+    if (regen) regen.style.display = "";
+    wrap.classList.add("idle");
+    state.sentimentDone = true;
+    return;
+  }
+
+  body.innerHTML = `<div class="siri-loading"><div class="siri-dots"><span></span><span></span><span></span><span></span><span></span></div> составляю резюме за вчера…</div>`;
   body.classList.add("open");
   siriBodyOpen = true;
   if (regen) regen.style.display = "none";
 
-  // Build prompt input
-  const lines = cards.slice(0, 45).map((c,i) => {
-    const desc = (c.summary||"").slice(0,80);
-    return `${i+1}. [${c.cat||"?"}] ${c.title}${desc?": "+desc:""}`;
-  }).join("\n");
+  // Use yesterday's cards; fallback to all cards if too few
+  const yStart = new Date(yesterday); yStart.setHours(0,0,0,0);
+  const yEnd   = new Date(yesterday); yEnd.setHours(23,59,59,999);
+  const yCards = cards.filter(c => c.date >= yStart && c.date <= yEnd);
+  const pool   = yCards.length >= 3 ? yCards : cards.slice(0, 40);
 
-  const prompt = `Ты редактор новостного агрегатора. Дай очень краткий экспертный срез по новостям за сегодня на русском языке.
+  // Group by category
+  const catLabels = { geopolitics:"Геополитика", finance:"Финансы", tech:"Технологии", lifestyle:"Лайфстайл", local:"Локальные" };
+  const byCat = {};
+  pool.forEach(c => { (byCat[c.cat] = byCat[c.cat] || []).push(c); });
 
-Ответь ровно 4 HTML-параграфами:
-<p><b>🌍 Главная тема:</b> одно предложение</p>
-<p><b>📊 Тональность:</b> одно слово (Напряжённая/Тревожная/Нейтральная/Позитивная/Смешанная) — одно предложение почему</p>
-<p><b>⚠️ Ключевой риск:</b> 1-2 предложения</p>
-<p><b>💡 Контекст:</b> одно предложение — что это значит шире</p>
+  const dateStr = yesterday.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
+  const sections = Object.entries(catLabels)
+    .filter(([id]) => (byCat[id] || []).length > 0)
+    .map(([id, label]) => {
+      const items = (byCat[id] || []).slice(0, 7)
+        .map(c => `- ${c.title_ru || c.title}`)
+        .join("\n");
+      return `### ${label}\n${items}`;
+    }).join("\n\n");
 
-Максимум 100 слов суммарно. Только HTML, без markdown, без лишних слов.
+  const prompt = `Ты редактор новостного агрегатора. Напиши резюме за ${dateStr} по разделам на русском.
 
-Новости:
-${lines}`;
+Для каждого раздела — одно-два предложения с ключевыми событиями. Стиль: конкретные факты, имена, цифры, без воды.
+В конце одно предложение с тональностью дня (слово: Напряжённая/Тревожная/Нейтральная/Позитивная/Смешанная).
+
+Ответь ТОЛЬКО этими HTML-блоками (пропускай разделы без новостей):
+<p><b>🌍 Геополитика:</b> ...</p>
+<p><b>💰 Финансы:</b> ...</p>
+<p><b>💻 Технологии:</b> ...</p>
+<p><b>🎭 Лайфстайл:</b> ...</p>
+<p><b>📊 Тональность дня:</b> Слово — одно предложение почему</p>
+
+Максимум 180 слов. Только HTML, без markdown.
+
+Новости за ${dateStr}:
+${sections}`;
 
   try {
     let text = null;
-
     if (m === "groq") {
       const res = await Promise.race([
         fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method:"POST",
-          headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
-            max_tokens: 350,
-            messages:[{role:"user",content:prompt}]
+            max_tokens: 500,
+            messages: [{ role: "user", content: prompt }]
           })
         }),
-        new Promise((_,r)=>setTimeout(()=>r("timeout"),20000))
+        new Promise((_,r) => setTimeout(() => r("timeout"), 20000))
       ]);
-      if (!res.ok) throw new Error("groq "+res.status);
+      if (!res.ok) throw new Error("groq " + res.status);
       const d = await res.json();
-      text = d.choices?.[0]?.message?.content?.trim()||null;
+      text = d.choices?.[0]?.message?.content?.trim() || null;
     }
-
-
 
     if (!text) throw new Error("empty response");
 
-    // Detect tone for badge
     const tl = text.toLowerCase();
-    let bc="neutral", bt="—";
-    if (/напряжённ|напряженн/.test(tl))  { bc="tense";  bt="Напряжённая"; }
-    else if (/тревожн/.test(tl))          { bc="alarm";  bt="Тревожная"; }
-    else if (/позитивн/.test(tl))         { bc="calm";   bt="Позитивная"; }
-    else if (/смешанн/.test(tl))          { bc="mixed";  bt="Смешанная"; }
-    else if (/нейтральн/.test(tl))        { bc="neutral";bt="Нейтральная"; }
+    let bc = "neutral", bt = "—";
+    if (/напряжённ|напряженн/.test(tl))  { bc = "tense";   bt = "Напряжённая"; }
+    else if (/тревожн/.test(tl))          { bc = "alarm";   bt = "Тревожная"; }
+    else if (/позитивн/.test(tl))         { bc = "calm";    bt = "Позитивная"; }
+    else if (/смешанн/.test(tl))          { bc = "mixed";   bt = "Смешанная"; }
+    else if (/нейтральн/.test(tl))        { bc = "neutral"; bt = "Нейтральная"; }
 
-    badge.textContent  = bt;
-    badge.className    = "siri-badge "+bc;
-    body.innerHTML     = text;
+    badge.textContent = bt;
+    badge.className   = "siri-badge " + bc;
+    body.innerHTML    = text;
     if (regen) regen.style.display = "";
-    wrap.classList.add("idle"); // stop spinning border
+    wrap.classList.add("idle");
     state.sentimentDone = true;
+
+    // Cache result by yesterday's date — regenerates automatically next day
+    try { localStorage.setItem(yKey, JSON.stringify({ html: text, badge: bt, bc, ts: Date.now() })); } catch(e) {}
+    // Prune old siri caches
+    try {
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith("siri_") && k !== yKey) localStorage.removeItem(k);
+      }
+    } catch(e) {}
 
   } catch(e) {
     wrap.classList.add("idle");
-    const errMsg = e?.message ? ` (${e.message.slice(0,80)})` : "";
     body.innerHTML = `<div class="siri-no-key" style="color:var(--text3)">
-      Ошибка генерации${errMsg}
+      Ошибка генерации (${(e?.message || "").slice(0, 60)})
       <button class="siri-setup-btn" onclick="regenSentiment()">Повторить</button>
     </div>`;
     if (regen) regen.style.display = "";
@@ -2224,6 +2656,17 @@ ${lines}`;
 loadModelPrefs();
 loadRates();
 loadWeather();
+
+// Show stored cards instantly before network fetch
+(function preloadStored() {
+  const stored = loadStoredCards();
+  if (stored.length > 0) {
+    state.cards = stored;
+    renderHeader();
+    renderContent();
+  }
+})();
+
 loadAll();
 
 // ═══════════════════════════════════════════════════════════
@@ -2253,6 +2696,14 @@ function expandCard(cardId) {
   expandedId = cardId;
   cardEl.classList.add("expanded");
   setTimeout(() => cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+
+  // Mark as read — remove NEW badge immediately
+  if (card.link) {
+    markCardRead(card.link);
+    card.isNew = false;
+    const badge = cardEl.querySelector(".card-new-badge");
+    if (badge) badge.remove();
+  }
 
   // Already have AI summary cached
   if (modalCache[cardId] && modalCache[cardId].ai) {
@@ -2456,7 +2907,7 @@ async function enrichNoKey(card, bodyEl, cardId) {
   }
 
   // Always translate western sources OR English text
-  const westernSources = ["WSJ","BBC","Al Jazeera","FT","Bloomberg"];
+  const westernSources = ["BBC","Al Jazeera","Forbes US"];
   const isWestern = (card.sources||[]).some(s => westernSources.some(w => s.includes(w)));
   if (state.lang === "ru" && (isWestern || isTextEnglish(text))) {
     // For longer Jina text — translate first 2000 chars in chunks of 500
@@ -2474,7 +2925,7 @@ async function enrichNoKey(card, bodyEl, cardId) {
     }
   }
 
-  const display = cutAtSentence(text, 1500);
+  const display = cutAtSentence(text, 600);
   const bodyNow = document.getElementById("expand-body-" + cardId);
   if (bodyNow) {
     const badge = (isWestern || (text && isTextEnglish(text)))
@@ -2542,16 +2993,18 @@ async function generateAISummary(card, bodyEl, cardId) {
     ? "на русском языке (даже если источник на английском — резюме должно быть на русском)"
     : "in English";
 
-  const prompt = "Ты редактор новостного агрегатора. Напиши развёрнутое резюме " + langInstruction + ".\n\n"
+  const srcCount = (card.raw||[]).length;
+  const multiNote = srcCount > 1 ? "\n- Если источники расходятся — упомяни одной фразой в тексте" : "";
+  const prompt = "Напиши резюме новости " + langInstruction + ".\n\n"
     + "ТРЕБОВАНИЯ:\n"
-    + "- 5-7 предложений, 160-220 слов\n"
-    + "- Конкретные цифры, даты, имена, должности, места\n"
-    + "- Хронология событий, контекст, почему важно\n"
-    + "- НЕ начинай с 'Согласно', 'По данным', 'В статье', 'Сообщается'\n"
-    + "- Стиль Reuters/Bloomberg: факты, без воды, с именами и цифрами\n"
-    + "- Это РЕЗЮМЕ — не цитата и не пересказ дословно, а твоя авторская выжимка\n\n"
-    + (fromFull ? "Текст статьи (прочитай и сделай резюме):\n" : "Описание из RSS (сделай максимально информативное резюме):\n")
-    + articleContent.slice(0, 6000);
+    + "- Ровно 3-5 предложений, 80-120 слов — не больше, не меньше\n"
+    + "- Конкретные факты: цифры, имена, даты, места\n"
+    + "- НЕ начинай с 'Согласно', 'По данным', 'Сообщается', 'В статье'\n"
+    + "- Не пересказывай дословно — авторская выжимка\n"
+    + "- Одинаковый объём независимо от длины источника"
+    + multiNote + "\n\n"
+    + (fromFull ? "Текст (выдели главное):\n" : "RSS-описание:\n")
+    + articleContent.slice(0, 5000);
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2564,7 +3017,7 @@ async function generateAISummary(card, bodyEl, cardId) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 700,
+        max_tokens: 300,
         messages: [{ role: "user", content: prompt }],
       }),
       signal: AbortSignal.timeout(25000),
