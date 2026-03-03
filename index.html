@@ -2112,9 +2112,15 @@ function decodeEntities(str) {
 // ═══════════════════════════════════════════════════════════
 
 function setFilter(id) {
+  const prev = state.filter;
   state.filter = id;
   renderHeader();
   renderContent();
+  // Re-generate siri summary for the new category
+  if (prev !== id) {
+    state.sentimentDone = false;
+    triggerSentiment();
+  }
 }
 
 function setRefreshState(busy) {
@@ -2498,31 +2504,39 @@ function triggerSentiment() {
   if (state.sentimentDone) return;
   if (state.sentimentModel === "off") return;
   if (state.cards.length < 3) return;
-  generateSentiment(state.cards);
+  generateSentiment(state.cards, state.filter);
 }
 
 function regenSentiment() {
-  // Clear yesterday's cache key so a fresh summary is generated
   try {
     const y = new Date(); y.setDate(y.getDate() - 1);
-    localStorage.removeItem("siri_" + y.toISOString().slice(0, 10));
+    const cat = state.filter === "all" ? "all" : state.filter;
+    localStorage.removeItem("siri_" + y.toISOString().slice(0, 10) + "_" + cat);
   } catch(e) {}
   state.sentimentDone = false;
-  generateSentiment(state.cards);
+  generateSentiment(state.cards, state.filter);
 }
 
-async function generateSentiment(cards) {
+async function generateSentiment(cards, filterCat) {
   const m   = state.sentimentModel;
   const key = state.groqKey;
+  const cat = filterCat || "all";
 
   const wrap  = document.getElementById("siri-wrap");
   const body  = document.getElementById("siri-body");
   const badge = document.getElementById("siri-badge");
   const regen = document.getElementById("siri-regen");
+  const titleEl = document.querySelector(".siri-title");
   if (!wrap || !body) return;
 
   wrap.style.display = "";
   wrap.classList.remove("idle");
+
+  // Update widget title to reflect current category
+  const catNames = { all:"Резюме за вчера", geopolitics:"Геополитика · вчера",
+    finance:"Финансы · вчера", tech:"Технологии · вчера",
+    lifestyle:"Лайфстайл · вчера", local:"Локальное · вчера" };
+  if (titleEl) titleEl.textContent = catNames[cat] || "Резюме за вчера";
 
   if (m === "off" || !key) {
     wrap.classList.add("idle");
@@ -2535,10 +2549,10 @@ async function generateSentiment(cards) {
     return;
   }
 
-  // Check daily cache keyed by yesterday's date
+  // Daily cache key includes category
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yKey = "siri_" + yesterday.toISOString().slice(0, 10);
+  const yKey = "siri_" + yesterday.toISOString().slice(0, 10) + "_" + cat;
   const cached = (() => {
     try { return JSON.parse(localStorage.getItem(yKey) || "null"); } catch(e) { return null; }
   })();
@@ -2554,48 +2568,44 @@ async function generateSentiment(cards) {
     return;
   }
 
-  body.innerHTML = `<div class="siri-loading"><div class="siri-dots"><span></span><span></span><span></span><span></span><span></span></div> составляю резюме за вчера…</div>`;
+  body.innerHTML = `<div class="siri-loading"><div class="siri-dots"><span></span><span></span><span></span><span></span><span></span></div> составляю резюме…</div>`;
   body.classList.add("open");
   siriBodyOpen = true;
   if (regen) regen.style.display = "none";
 
-  // Use yesterday's cards; fallback to all cards if too few
+  // Build card pool: yesterday's cards, filtered by category if not "all"
   const yStart = new Date(yesterday); yStart.setHours(0,0,0,0);
   const yEnd   = new Date(yesterday); yEnd.setHours(23,59,59,999);
-  const yCards = cards.filter(c => c.date >= yStart && c.date <= yEnd);
-  const pool   = yCards.length >= 3 ? yCards : cards.slice(0, 40);
-
-  // Group by category
-  const catLabels = { geopolitics:"Геополитика", finance:"Финансы", tech:"Технологии", lifestyle:"Лайфстайл", local:"Локальные" };
-  const byCat = {};
-  pool.forEach(c => { (byCat[c.cat] = byCat[c.cat] || []).push(c); });
+  let yCards = cards.filter(c => c.date >= yStart && c.date <= yEnd);
+  if (cat !== "all") yCards = yCards.filter(c => c.cat === cat);
+  const pool = yCards.length >= 3 ? yCards : (
+    cat !== "all" ? cards.filter(c => c.cat === cat).slice(0, 30) : cards.slice(0, 40)
+  );
 
   const dateStr = yesterday.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
-  const sections = Object.entries(catLabels)
-    .filter(([id]) => (byCat[id] || []).length > 0)
-    .map(([id, label]) => {
-      const items = (byCat[id] || []).slice(0, 7)
-        .map(c => `- ${c.title_ru || c.title}`)
-        .join("\n");
-      return `### ${label}\n${items}`;
-    }).join("\n\n");
 
-  const prompt = `Ты редактор новостного агрегатора. Напиши резюме за ${dateStr} по разделам на русском.
+  let prompt;
+  if (cat === "all") {
+    // Cross-category overview: group by category, pick top news per section
+    const catLabels = { geopolitics:"Геополитика", finance:"Финансы",
+      tech:"Технологии", lifestyle:"Лайфстайл" };
+    const byCat = {};
+    pool.forEach(c => { if (catLabels[c.cat]) (byCat[c.cat] = byCat[c.cat] || []).push(c); });
+    const sections = Object.entries(catLabels)
+      .filter(([id]) => (byCat[id]||[]).length > 0)
+      .map(([id, label]) =>
+        `### ${label}\n` + (byCat[id]||[]).slice(0,6).map(c => `- ${c.title_ru||c.title}`).join("\n")
+      ).join("\n\n");
 
-Для каждого раздела — одно-два предложения с ключевыми событиями. Стиль: конкретные факты, имена, цифры, без воды.
-В конце одно предложение с тональностью дня (слово: Напряжённая/Тревожная/Нейтральная/Позитивная/Смешанная).
+    prompt = `Ты редактор новостного агрегатора. Напиши общее резюме за ${dateStr} по разделам.\n\nДля каждого раздела — 1-2 предложения с ключевыми событиями. Конкретные факты, имена, цифры.\nВ конце — одно предложение с тональностью дня.\n\nОтветь ТОЛЬКО HTML:\n<p><b>🌍 Геополитика:</b> ...</p>\n<p><b>💰 Финансы:</b> ...</p>\n<p><b>💻 Технологии:</b> ...</p>\n<p><b>🎭 Лайфстайл:</b> ...</p>\n<p><b>📊 Тональность дня:</b> Слово — почему</p>\n\nПропускай разделы без новостей. Максимум 180 слов. Только HTML.\n\nНовости:\n${sections}`;
+  } else {
+    // Single-category deep-dive
+    const catLabel = { geopolitics:"Геополитика", finance:"Финансы",
+      tech:"Технологии", lifestyle:"Лайфстайл", local:"Локальные новости" }[cat] || cat;
+    const items = pool.slice(0, 12).map(c => `- ${c.title_ru||c.title}`).join("\n");
 
-Ответь ТОЛЬКО этими HTML-блоками (пропускай разделы без новостей):
-<p><b>🌍 Геополитика:</b> ...</p>
-<p><b>💰 Финансы:</b> ...</p>
-<p><b>💻 Технологии:</b> ...</p>
-<p><b>🎭 Лайфстайл:</b> ...</p>
-<p><b>📊 Тональность дня:</b> Слово — одно предложение почему</p>
-
-Максимум 180 слов. Только HTML, без markdown.
-
-Новости за ${dateStr}:
-${sections}`;
+    prompt = `Ты редактор новостного агрегатора. Напиши резюме раздела «${catLabel}» за ${dateStr}.\n\nВыдели 2-3 самых важных события, 2-3 предложения на каждое. Конкретные факты, имена, цифры. В конце — одно предложение с общим итогом раздела.\n\nОтветь ТОЛЬКО HTML-параграфами:\n<p><b>Событие 1:</b> ...</p>\n<p><b>Событие 2:</b> ...</p>\n<p><b>Итог:</b> ...</p>\n\nМаксимум 160 слов. Только HTML.\n\nНовости раздела:\n${items}`;
+  }
 
   try {
     let text = null;
@@ -2634,9 +2644,7 @@ ${sections}`;
     wrap.classList.add("idle");
     state.sentimentDone = true;
 
-    // Cache result by yesterday's date — regenerates automatically next day
     try { localStorage.setItem(yKey, JSON.stringify({ html: text, badge: bt, bc, ts: Date.now() })); } catch(e) {}
-    // Prune old siri caches
     try {
       for (const k of Object.keys(localStorage)) {
         if (k.startsWith("siri_") && k !== yKey) localStorage.removeItem(k);
@@ -2646,7 +2654,7 @@ ${sections}`;
   } catch(e) {
     wrap.classList.add("idle");
     body.innerHTML = `<div class="siri-no-key" style="color:var(--text3)">
-      Ошибка генерации (${(e?.message || "").slice(0, 60)})
+      Ошибка (${(e?.message || "").slice(0, 60)})
       <button class="siri-setup-btn" onclick="regenSentiment()">Повторить</button>
     </div>`;
     if (regen) regen.style.display = "";
