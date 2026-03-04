@@ -3056,7 +3056,7 @@ async function shareCardScreenshot(cardId) {
 
     const canvas = await html2canvas(cardEl, {
       backgroundColor: bgColor,
-      scale: 2,
+      scale: window.devicePixelRatio * 2,
       useCORS: true,
       logging: false,
       scrollY: -window.scrollY,
@@ -3069,7 +3069,7 @@ async function shareCardScreenshot(cardId) {
       // Try Web Share API (mobile + Chrome desktop)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: "MMSAWW NEWS" });
+          await navigator.share({ files: [file] });
           if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
           return;
         } catch(e) { /* cancelled or unsupported */ }
