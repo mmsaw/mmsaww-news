@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MMSAWW NEWS">
 <meta name="theme-color" content="#1a1a0e">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
 :root{
@@ -41,7 +42,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 /* HEADER */
 .hdr{background:var(--surface);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
-.hdr-brand{display:flex;align-items:center;padding:0 28px;border-bottom:1px solid var(--border)}
+.hdr-brand{display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--border);gap:10px}
 .logo-wrap{display:flex;align-items:baseline;gap:0;padding:14px 0 10px;flex:1}
 .logo{font-family:var(--head);font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text);text-transform:uppercase;border-bottom:2.5px solid var(--accent);padding-bottom:2px;line-height:1}
 .logo-sub{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-left:10px;align-self:center}
@@ -53,6 +54,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .theme-btn:hover{border-color:var(--border2)}
 .gear-btn{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:4px;line-height:1;border-radius:var(--r);transition:color .15s}
 .gear-btn:hover{color:var(--accent)}
+.refresh-hdr-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:4px 9px;cursor:pointer;font-size:16px;color:var(--text3);transition:all .15s;line-height:1;display:flex;align-items:center;justify-content:center;width:30px;height:28px;flex-shrink:0}
+.refresh-hdr-btn:hover{border-color:var(--accent);color:var(--accent)}
+.refresh-hdr-btn:disabled{opacity:.4;cursor:not-allowed}
 .lang-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--text2);transition:all .15s}
 .lang-btn:hover{border-color:var(--border2)}
 .lang-btn.translating{border-color:var(--accent);color:var(--accent);animation:blink 1.5s infinite}
@@ -67,14 +71,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .settings-note{font-family:var(--mono);font-size:9px;color:var(--text3);width:100%}
 
 /* NAV — category tabs */
-.fbar{display:flex;align-items:center;gap:0;padding:0 28px;overflow-x:auto;scrollbar-width:none;border-top:none}
+.fbar{display:flex;align-items:center;gap:0;padding:0 20px;overflow-x:auto;scrollbar-width:none;border-top:none;border-bottom:1px solid var(--border);background:var(--surface);min-height:36px}
 .fbar::-webkit-scrollbar{display:none}
-.fbtn{padding:11px 15px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--ui);font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;white-space:nowrap;margin-bottom:-1px}
+.fbtn{padding:7px 10px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--ui);font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;white-space:nowrap;margin-bottom:-1px}
 .fbtn:hover{color:var(--text)}
 .fbtn.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
 .fcnt{display:inline-block;font-size:10px;color:var(--text3);background:var(--bg2);border-radius:10px;padding:1px 6px;margin-left:4px;font-weight:400;font-family:var(--mono)}
 .fbtn.on .fcnt{background:var(--accent-bg);color:var(--accent2)}
-.rfbtn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.rfbtn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
 .rfbtn:hover{background:var(--accent2)}
 .rfbtn:disabled{opacity:.5;cursor:not-allowed}
 .spin{display:inline-block;animation:rot 1s linear infinite}
@@ -100,25 +104,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 /* Row 1: Press + Period */
 .filterbar-row1 {
   display: flex; align-items: center;
-  padding: 0 16px; gap: 0;
+  padding: 0 20px; gap: 0;
   border-bottom: 1px solid var(--border);
   flex-wrap: nowrap; overflow-x: auto;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  min-height: 36px;
 }
 .filterbar-row1::-webkit-scrollbar { display: none; }
 
 /* Row 2: Sources — scrolls independently */
 .filterbar-row2 {
   display: flex; align-items: center;
-  padding: 0 16px; gap: 0;
-  position: relative; /* for fade overlay */
+  padding: 0 20px; gap: 0;
+  position: relative;
   overflow: hidden;
+  min-height: 36px;
 }
 .filterbar-row2-scroll {
   display: flex; align-items: center; gap: 4px;
   overflow-x: auto; scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding: 5px 0 5px 0;
+  padding: 4px 0;
   flex: 1;
 }
 .filterbar-row2-scroll::-webkit-scrollbar { display: none; }
@@ -131,7 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 .fgroup {
   display: flex; align-items: center; gap: 3px;
-  padding: 5px 0; flex-shrink: 0;
+  padding: 3px 0; flex-shrink: 0;
 }
 
 .fgroup-label {
@@ -191,7 +197,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .src-clear:hover{border-color:var(--red);color:var(--red)}
 
 /* STATUS BAR */
-.sbar{font-family:var(--mono);font-size:10px;color:var(--text3);padding:5px 28px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;min-height:26px;background:var(--bg2)}
+.sbar{font-family:var(--mono);font-size:10px;color:var(--text3);padding:4px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;min-height:36px;background:var(--bg2)}
 .sbar::-webkit-scrollbar{display:none}
 .si{display:flex;align-items:center;gap:4px}.sd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .si.ok .sd{background:#22c55e}.si.ok{color:var(--green);opacity:.8}
@@ -361,7 +367,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 }
 
 /* ── Rates bar ───────────────────────────────────────────────── */
-.rates-bar{display:flex;align-items:center;gap:0;padding:6px 24px;background:var(--surface);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;overflow-x:auto;scrollbar-width:none;white-space:nowrap;flex-wrap:nowrap}
+.rates-bar{display:flex;align-items:center;gap:0;padding:0 20px;min-height:38px;background:var(--surface);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;overflow-x:auto;scrollbar-width:none;white-space:nowrap;flex-wrap:nowrap}
 .rates-bar::-webkit-scrollbar{display:none}
 .rate-item{display:flex;align-items:center;gap:5px;color:var(--text2);padding:0 10px}
 .rate-label{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
@@ -680,6 +686,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   font-size: 16px !important;  /* iOS won't zoom if font-size >= 16px */
   transform-origin: left top;
 }
+/* Share screenshot button */
+.share-screenshot-btn {
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 12px;border-radius:5px;
+  border:1px solid var(--border);background:none;
+  font-family:var(--mono);font-size:11px;color:var(--text3);
+  cursor:pointer;transition:all .15s;flex-shrink:0;
+}
+.share-screenshot-btn:hover{border-color:var(--accent);color:var(--accent)}
+.share-screenshot-btn.loading{opacity:.5;cursor:not-allowed}
 .fstatus{font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:6px;white-space:nowrap;animation:blink 1.5s infinite}
 </style>
 </head>
@@ -693,12 +709,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
       <div class="logo">MMSAWW NEWS</div>
       <span class="logo-sub">Персональный агрегатор</span>
     </div>
+    <button class="refresh-hdr-btn" id="refresh-hdr-btn" onclick="loadAll()" title="Обновить новости">
+      <span id="refresh-hdr-icon">↻</span>
+    </button>
     <div class="hdr-right">
       <div class="hdr-time">
         <span class="live"></span>
-        <span id="time-display">—</span>
-        <span style="color:var(--border2)">·</span>
-        <span id="date-display"></span>
       </div>
       <button class="lang-btn" id="lang-btn" onclick="toggleLang()" title="Переключить язык">RU</button>
       <button class="theme-btn" onclick="toggleTheme()">
@@ -727,7 +743,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
   </div>
   <div class="fbar" id="fbar">
-    <button class="rfbtn" onclick="loadAll()"><span>↻</span> Обновить</button>
     <button class="clear-cache-btn" onclick="if(confirm('Очистить кэш новостей?'))clearStoredCards()" title="Удалить сохранённые новости">🗑 Кэш</button>
   </div>
 </header>
@@ -1797,20 +1812,13 @@ function renderHeader() {
     btns += `<button class="fbtn${on?" on":""}" style="${style}" onclick="setFilter('${c.id}')">${c.label}${cntBadge}</button>`;
   });
 
-  // Refresh btn
-  const busy = state.loading;
-  btns += `<button class="rfbtn" id="refresh-btn" onclick="loadAll()" ${busy?"disabled":""}>
-    <span id="refresh-icon" class="${busy?"spin":""}">${busy?"↻":"↻"}</span>
-    ${busy?"Загрузка…":"Обновить"}
-  </button>`;
-  fbar.innerHTML = btns;
+  // Refresh btn — now in header, just update state
+  const hdrBtn  = document.getElementById("refresh-hdr-btn");
+  const hdrIcon = document.getElementById("refresh-hdr-icon");
+  if (hdrBtn)  hdrBtn.disabled = state.loading;
+  if (hdrIcon) { hdrIcon.className = state.loading ? "spin" : ""; hdrIcon.textContent = "↻"; }
 
-  // Time
-  const d = new Date();
-  document.getElementById("time-display").textContent =
-    d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
-  document.getElementById("date-display").textContent =
-    d.toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
+  fbar.innerHTML = btns;
 }
 
 
@@ -1871,16 +1879,7 @@ function renderStatusBar() {
 }
 
 function renderTicker() {
-  const wrap  = document.getElementById("ticker-wrap");
-  const inner = document.getElementById("ticker-inner");
-  const items = state.cards.slice(0,10);
-  if (!items.length) { wrap.style.display="none"; return; }
-  wrap.style.display="block";
-  const doubled = [...items,...items];
-  inner.innerHTML = doubled.map(item => {
-    const cat = CATEGORIES.find(c=>c.id===item.cat);
-    return `<span class="tick-item"><b>${cat?cat.label:""}</b>${escHtml(item.title)}</span>`;
-  }).join("");
+  // Ticker removed
 }
 
 // ── Filter helpers ───────────────────────────────────────────────────────────
@@ -2088,6 +2087,7 @@ function cardHTML(item) {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             ${escHtml(r.sourceName||"Источник")}</a>`).join("")}
         <button class="expand-close" onclick="event.stopPropagation();collapseCard('${item.id}')">Свернуть ↑</button>
+        <button class="share-screenshot-btn" onclick="event.stopPropagation();shareCardScreenshot('${item.id}')" title="Поделиться скриншотом">📸 Поделиться</button>
       </div>
     </div>
   </div>`;
@@ -2129,11 +2129,7 @@ function setRefreshState(busy) {
 
 
 
-// Clock only — auto-refresh removed
-setInterval(() => {
-  const el = document.getElementById("time-display");
-  if (el) el.textContent = new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
-}, 1000);
+// Clock removed
 
 // ═══════════════════════════════════════════════════════════
 // INIT
@@ -2166,10 +2162,7 @@ const SUBCAT_META = {
   "world-eco": { label:"Мировая экономика",    cls:"world-eco" },
 };
 
-document.getElementById("date-display").textContent =
-  new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
-document.getElementById("time-display").textContent =
-  new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+
 
 
 
@@ -3047,7 +3040,54 @@ async function generateAISummary(card, bodyEl, cardId) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// SHARE AS SCREENSHOT
+// ═══════════════════════════════════════════════════════════
+async function shareCardScreenshot(cardId) {
+  const cardEl = document.getElementById("card-" + cardId);
+  if (!cardEl) return;
 
+  const btn = cardEl.querySelector(".share-screenshot-btn");
+  if (btn) { btn.classList.add("loading"); btn.innerHTML = "⏳ Создаём..."; }
+
+  try {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const bgColor = isDark ? "#111009" : "#FFFFFF";
+
+    const canvas = await html2canvas(cardEl, {
+      backgroundColor: bgColor,
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollY: -window.scrollY,
+    });
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
+
+      // Try Web Share API (mobile + Chrome desktop)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "MMSAWW NEWS" });
+          if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
+          return;
+        } catch(e) { /* cancelled or unsupported */ }
+      }
+
+      // Fallback: download PNG
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "mmsaww-news.png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
+    }, "image/png");
+
+  } catch(e) {
+    console.error("Screenshot error:", e);
+    if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
+  }
+}
 
 </script>
 </script>
