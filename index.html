@@ -935,25 +935,26 @@ const SOURCES = [
   },
   {
     urls: [
-      // Прямые RSS forbes.ru блокируются Cloudflare на всех прокси
-      // Telegram-канал через rsshub — самый надёжный способ
+      "https://www.forbes.ru/rss/news",
+      "https://www.forbes.ru/rss",
+      "https://www.forbes.ru/newsfeed/rss",
+      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
       "https://rsshub.app/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
-      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
     ],
     name:"Forbes RU", country:"ru"
   },
   // ── Финансовые ────────────────────────────────────────────────────────────
   {
     urls: [
-      // frankrg.com / frankmedia.ru блокируют CORS-прокси
-      // Telegram-канал через rsshub — самый надёжный способ
+      "https://frankrg.com/feed",
+      "https://frankrg.com/?feed=rss2",
+      "https://frankmedia.ru/feed",
+      "https://frankmedia.ru/?feed=rss2",
+      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
       "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
-      "https://frankrg.com/feed",
-      "https://frankmedia.ru/feed",
     ],
     name:"Frank Media", country:"ru"
   },
@@ -1002,7 +1003,6 @@ const SOURCES = [
   // ── Локальные ─────────────────────────────────────────────────────────────
   {
     urls: [
-      "https://news.google.com/rss/search?q=Ярославль&hl=ru&gl=RU&ceid=RU:ru",
       "https://76.ru/rss/",
       "https://76.ru/rss/all",
       "https://76.ru/feed/",
@@ -1011,7 +1011,6 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://news.google.com/rss/search?q=Москва+site:m24.ru&hl=ru&gl=RU&ceid=RU:ru",
       "https://www.m24.ru/rss.xml",
       "https://m24.ru/rss.xml",
       "https://www.m24.ru/rss",
@@ -2990,21 +2989,25 @@ async function generateAISummary(card, bodyEl, cardId) {
 
   const links = [...new Set((card.raw||[]).map(r=>r.link).filter(Boolean))];
 
-  const fetched = await Promise.allSettled(links.slice(0, 3).map(fetchArticleText));
+  // ── Speed optimisation: skip Jina if RSS description is already rich ──────
+  const rssContent = (card.raw||[])
+    .map(r => decodeEntities(r.description||"")).filter(t => t.length > 40).join("\n\n");
+  const rssIsRich = rssContent.length > 350;
 
-  const articleParts = [];
-  links.slice(0, 3).forEach((link, i) => {
-    const r = fetched[i];
-    if (r.status === "fulfilled" && r.value && r.value.length > 150) {
-      const src = (card.raw||[]).find(x => x.link === link)?.sourceName || "";
-      articleParts.push((src ? "[" + src + "]\n" : "") + r.value);
+  let articleContent = "";
+  let fromFull = false;
+
+  if (!rssIsRich && links.length > 0) {
+    // Try only the FIRST link — not all 3 (each Jina call takes 8-12s)
+    const fetched = await fetchArticleText(links[0]);
+    if (fetched && fetched.length > 150) {
+      const src = (card.raw||[]).find(x => x.link === links[0])?.sourceName || "";
+      articleContent = (src ? "[" + src + "]\n" : "") + fetched;
+      const sentenceCount = (articleContent.match(/[.!?…]+/g)||[]).length;
+      const wordCount2 = articleContent.split(/\s+/).length;
+      fromFull = articleContent.length > 300 && sentenceCount > 3 && sentenceCount/wordCount2 > 0.03;
     }
-  });
-
-  let articleContent = articleParts.join("\n\n---\n\n");
-  const sentenceCount = (articleContent.match(/[.!?…]+/g)||[]).length;
-  const wordCount2 = articleContent.split(/\s+/).length;
-  const fromFull = articleContent.length > 300 && sentenceCount > 3 && sentenceCount/wordCount2 > 0.03;
+  }
 
   if (!fromFull) {
     articleContent = (card.raw||[])
@@ -3078,24 +3081,74 @@ async function askCardAI(cardId) {
   uDiv.textContent = question;
   msgs.appendChild(uDiv);
 
-  // Placeholder
+  // Placeholder with typing indicator
   const aDiv = document.createElement("div");
   aDiv.className = "card-ai-ask-msg-ai";
   aDiv.textContent = "…";
   msgs.appendChild(aDiv);
   msgs.scrollTop = msgs.scrollHeight;
 
-  const title   = card.title_ru || card.title || "";
-  const summary = displaySummary(card).slice(0, 400);
-  const article = getRSSText(card).slice(0, 800);
+  const title   = card.title_ru   || card.title   || "";
+  const summary = displaySummary(card).slice(0, 600);
+  const article = getRSSText(card).slice(0, 1500);
+  const sources = (card.sources||[]).join(", ");
+  const catName = (CATEGORIES.find(c=>c.id===card.cat)||{}).label || card.cat;
 
-  const prompt = `Контекст новости:\n\nZAGOLOVOK: ${title}\n\nRESYUME: ${summary}\n\nSTATYA: ${article}\n\nВопрос пользователя: ${question}\n\nОтветь кратко, по делу, по-русски. Можно использовать внешние знания.`;
+  const systemMsg = `Ты умный новостной ассистент MMSAWW NEWS. Отвечай ВСЕГДА по-русски.
+
+У тебя есть контекст новости:
+Раздел: ${catName}
+Источник: ${sources}
+Заголовок: ${title}
+Резюме: ${summary}
+Текст: ${article}
+
+ПРАВИЛА:
+1. Сначала ищи ответ в контексте новости выше
+2. Если в контексте недостаточно информации — используй свои знания или поиск в интернете
+3. Отвечай конкретно, кратко, по делу
+4. Не говори "в статье не упоминается" — просто отвечай используя все доступные знания`;
 
   try {
-    const text = await groqCall(prompt, 400, key);
-    aDiv.textContent = text || "Нет ответа";
+    const res = await Promise.race([
+      fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+        body: JSON.stringify({
+          model: "compound-beta",       // compound-beta has web search built-in
+          max_tokens: 600,
+          messages: [
+            { role: "system", content: systemMsg },
+            { role: "user",   content: question  }
+          ]
+        })
+      }),
+      new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 25000))
+    ]);
+
+    if (!res.ok) throw new Error("groq " + res.status);
+    const d = await res.json();
+
+    // compound-beta may return content as array of blocks
+    const rawContent = d.choices?.[0]?.message?.content;
+    let reply;
+    if (Array.isArray(rawContent)) {
+      reply = rawContent.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+    } else {
+      reply = (rawContent || "").trim();
+    }
+
+    aDiv.textContent = reply || "Нет ответа";
   } catch(e) {
-    aDiv.textContent = "Ошибка: " + (e.message||"");
+    // Fallback to regular 70B if compound-beta fails
+    try {
+      const fallback = await groqCall(
+        `${systemMsg}\n\nВопрос: ${question}`, 500, key
+      );
+      aDiv.textContent = fallback || "Нет ответа";
+    } catch {
+      aDiv.textContent = "Ошибка соединения с AI";
+    }
   } finally {
     btn.disabled = false;
     msgs.scrollTop = msgs.scrollHeight;
@@ -3219,41 +3272,98 @@ async function shareCardScreenshot(cardId) {
 
   try {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    const bgColor = isDark ? "#111009" : "#FFFFFF";
+    const cs = getComputedStyle(document.documentElement);
 
-    const canvas = await html2canvas(cardEl, {
-      backgroundColor: bgColor,
-      scale: window.devicePixelRatio * 2,
-      useCORS: true,
-      logging: false,
-      scrollY: -window.scrollY,
+    // Resolve CSS variables → real hex values
+    const surface = cs.getPropertyValue("--surface").trim() || (isDark ? "#111009" : "#ffffff");
+    const textCol = cs.getPropertyValue("--text").trim()    || (isDark ? "#f0efe8" : "#111111");
+    const text2   = cs.getPropertyValue("--text2").trim()   || (isDark ? "#a8a89a" : "#555550");
+    const text3   = cs.getPropertyValue("--text3").trim()   || (isDark ? "#666658" : "#99998e");
+    const accent2 = cs.getPropertyValue("--accent2").trim() || "#8b6f00";
+    const border  = cs.getPropertyValue("--border").trim()  || (isDark ? "#2a2a1e" : "#e2e2de");
+    const bgColor = cs.getPropertyValue("--bg").trim()      || (isDark ? "#0d0d08" : "#f7f7f5");
+
+    // Clone card into a visible off-screen div (html2canvas needs it visible)
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "position:absolute;left:-9999px;top:0;";
+    document.body.appendChild(wrapper);
+
+    const clone = cardEl.cloneNode(true);
+    // Patch all inline styles to avoid CSS variable issues
+    clone.style.cssText = `background:${surface};color:${textCol};border:1px solid ${border};
+      border-radius:10px;height:auto;overflow:visible;max-width:400px;width:400px;padding:18px;`;
+
+    clone.querySelectorAll("*").forEach(el => {
+      const cls = typeof el.className === "string" ? el.className : "";
+      if (cls.includes("share-screenshot") || cls.includes("expand-close") ||
+          cls.includes("expand-footer")    || cls.includes("card-ai-ask")) {
+        el.remove(); return;
+      }
+      if (cls.includes("ctitle"))         { el.style.color = textCol; el.style.webkitLineClamp = "unset"; el.style.overflow = "visible"; }
+      if (cls.includes("ctime"))          el.style.color = text3;
+      if (cls.includes("expand-label"))   el.style.color = accent2;
+      if (cls.includes("expand-summary")) { el.style.color = textCol; el.style.fontSize = "13px"; el.style.lineHeight = "1.7"; }
+      if (cls.includes("expand-powered")) el.style.color = text3;
+      if (cls.includes("chip"))           { el.style.background = bgColor; el.style.color = text2; }
     });
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
+    // Subtle branding watermark
+    const brand = document.createElement("div");
+    brand.style.cssText = `margin-top:12px;padding-top:8px;border-top:1px solid ${border};
+      display:flex;align-items:center;justify-content:flex-end;gap:4px;opacity:0.4;`;
+    brand.innerHTML = `
+      <span style="font-family:Georgia,serif;font-size:9px;font-weight:900;
+        letter-spacing:.16em;text-transform:uppercase;color:${textCol};">MMSAWW</span>
+      <span style="font-family:Georgia,serif;font-size:9px;font-weight:400;
+        letter-spacing:.12em;text-transform:uppercase;color:${text3};">NEWS</span>`;
+    clone.appendChild(brand);
 
-      // Try Web Share API (mobile + Chrome desktop)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
-          return;
-        } catch(e) { /* cancelled or unsupported */ }
-      }
+    wrapper.appendChild(clone);
 
-      // Fallback: download PNG
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "mmsaww-news.png"; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-      if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
-    }, "image/png");
+    const canvas = await html2canvas(clone, {
+      backgroundColor: surface,
+      scale: Math.min(window.devicePixelRatio * 2, 3),
+      useCORS: true,
+      logging: false,
+    });
+
+    document.body.removeChild(wrapper);
+
+    // Mobile: Web Share API
+    const isMobile = navigator.share && navigator.canShare;
+    if (isMobile) {
+      await new Promise(resolve => {
+        canvas.toBlob(async blob => {
+          if (!blob) { resolve(); return; }
+          const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file] }); } catch {}
+          } else {
+            _downloadCanvas(canvas);
+          }
+          resolve();
+        }, "image/png");
+      });
+    } else {
+      // Desktop: direct download via dataURL (no blob/async needed)
+      _downloadCanvas(canvas);
+    }
 
   } catch(e) {
-    console.error("Screenshot error:", e);
+    console.error("Screenshot:", e);
+  } finally {
     if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
   }
+}
+
+function _downloadCanvas(canvas) {
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = "mmsaww-news.png";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 </script>
