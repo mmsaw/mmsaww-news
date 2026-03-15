@@ -343,11 +343,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .expand-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:var(--accent2);display:flex;align-items:center;gap:6px;margin-bottom:12px}
 .expand-label::after{content:'';flex:1;height:1px;background:var(--accent);opacity:.3}
-.expand-orig-btn{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;
-  font-weight:600;letter-spacing:.06em;color:var(--text3);text-decoration:none;
-  padding:1px 7px;border:1px solid var(--border);border-radius:10px;
-  transition:all .15s;flex-shrink:0;text-transform:uppercase}
-.expand-orig-btn:hover{color:var(--accent2);border-color:var(--accent)}
 .expand-summary{font-size:13.5px;line-height:1.75;color:var(--text)}
 .expand-skel{display:flex;flex-direction:column;gap:8px}
 .expand-skel-line{background:var(--bg2);border-radius:4px;animation:shim 1.4s ease-in-out infinite}
@@ -867,15 +862,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 </div>
 
 
-<!-- BLOOMBERG WIDGET -->
-<div class="blmb-wrap" id="blmb-wrap" style="display:none">
-  <div class="blmb-head" onclick="toggleBloomberg()">
-    <span class="blmb-logo">Bloomberg</span>
-    <span class="blmb-count" id="blmb-count"></span>
-    <span class="blmb-chevron" id="blmb-chevron">▸</span>
-  </div>
-  <div class="blmb-body" id="blmb-body" style="display:none"></div>
-</div>
 
 <!-- SIRI AI WIDGET -->
 <div class="siri-wrap idle" id="siri-wrap" style="display:none">
@@ -949,39 +935,29 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://www.forbes.ru/rss/news",          // прямой RSS
-      "https://www.forbes.ru/rss",
-      "https://www.forbes.ru/newsfeed/rss",
-      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
-      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram @forbes_russia — дополнительный источник
+      // Прямые RSS forbes.ru блокируются Cloudflare на всех прокси
+      // Telegram-канал через rsshub — самый надёжный способ
       "https://rsshub.app/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
     ],
     name:"Forbes RU", country:"ru"
   },
   // ── Финансовые ────────────────────────────────────────────────────────────
   {
     urls: [
-      "https://frankrg.com/feed",
-      "https://frankrg.com/?feed=rss2",
-      "https://frankmedia.ru/feed",
-      "https://frankmedia.ru/?feed=rss2",
-      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram @frank_media — дополнительный источник
+      // frankrg.com / frankmedia.ru блокируют CORS-прокси
+      // Telegram-канал через rsshub — самый надёжный способ
       "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
+      "https://frankrg.com/feed",
+      "https://frankmedia.ru/feed",
     ],
     name:"Frank Media", country:"ru"
   },
   // ── Западные ─────────────────────────────────────────────────────────────
-  {
-    urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:forbes.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:forbes.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Forbes US", country:"west", maxAgeDays:2
-  },
   {
     urls: [
       "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -1002,24 +978,6 @@ const SOURCES = [
     name:"Al Jazeera", country:"west"
   },
 
-  // ── Bloomberg (via Google News — официальный RSS Bloomberg закрыт)
-  {
-    urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:bloomberg.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:bloomberg.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=bloomberg+markets+finance&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Bloomberg", country:"west", maxAgeDays:3, bloombergOnly:true
-  },
-  // ── Reuters
-  {
-    urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
-      "https://feeds.reuters.com/reuters/topNews",
-      "https://feeds.reuters.com/Reuters/worldNews",
-    ],
-    name:"Reuters", country:"west", maxAgeDays:2
-  },
   // ── The Guardian
   {
     urls: [
@@ -1029,35 +987,22 @@ const SOURCES = [
     ],
     name:"Guardian", country:"west", maxAgeDays:2
   },
-  // ── Financial Times (via Google News)
-  {
-    urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:ft.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:ft.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Financial Times", country:"west", maxAgeDays:2
-  },
   // ── Politico
   {
     urls: [
-      "https://www.politico.com/rss/politics08.xml",
-      "https://www.politico.eu/feed/",
+      // Google News первым — самый стабильный через прокси
       "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=politico+politics&hl=en&gl=US&ceid=US:en",
+      "https://www.politico.eu/feed/",
+      "https://www.politico.com/rss/politics08.xml",
     ],
     name:"Politico", country:"west", maxAgeDays:2
-  },
-  // ── Associated Press
-  {
-    urls: [
-      "https://rsshub.app/apnews/topics/ap-top-news",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"AP", country:"west", maxAgeDays:2
   },
 
   // ── Локальные ─────────────────────────────────────────────────────────────
   {
     urls: [
+      "https://news.google.com/rss/search?q=Ярославль&hl=ru&gl=RU&ceid=RU:ru",
       "https://76.ru/rss/",
       "https://76.ru/rss/all",
       "https://76.ru/feed/",
@@ -1066,6 +1011,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "https://news.google.com/rss/search?q=Москва+site:m24.ru&hl=ru&gl=RU&ceid=RU:ru",
       "https://www.m24.ru/rss.xml",
       "https://m24.ru/rss.xml",
       "https://www.m24.ru/rss",
@@ -1655,31 +1601,7 @@ async function loadAll() {
   state.lastUpdated = new Date();
   setRefreshState(false);
 
-  const allItems = results.flat().filter(it => {
-    const src = SOURCES.find(s => s.name === it.sourceName);
-    if (src?.bloombergOnly) {
-      // Stash bloomberg items separately, don't add to main feed
-      state.bloombergItems = state.bloombergItems || [];
-      if (!state.bloombergItems.find(x => x.link === it.link)) {
-        state.bloombergItems.push(it);
-      }
-      return false;
-    }
-    return true;
-  });
-  state.bloombergItems = (state.bloombergItems || [])
-    .sort((a,b) => b.date - a.date)
-    .slice(0, 30);
-  renderBloombergWidget();
-  // Translate Bloomberg titles to Russian in background
-  if (state.lang === "ru") {
-    (state.bloombergItems || []).forEach(async it => {
-      if (!it.title_ru && it.title) {
-        const tr = await gtranslate(it.title, "ru");
-        if (tr) { it.title_ru = tr; renderBloombergWidget(); }
-      }
-    });
-  }
+  const allItems = results.flat();
 
   // ── Global title dedup: remove near-identical headlines across sources
   const _dedupSeen = new Map();
@@ -1918,36 +1840,8 @@ function renderHeader() {
 
 function toggleSrcBar() { /* merged into filterbar */ }
 
-function toggleBloomberg() {
-  const wrap = document.getElementById("blmb-wrap");
-  const body = document.getElementById("blmb-body");
-  const chev = document.getElementById("blmb-chevron");
-  if (!wrap) return;
-  const open = wrap.classList.toggle("open");
-  if (body) body.style.display = open ? "" : "none";
-}
-
-function renderBloombergWidget() {
-  const wrap  = document.getElementById("blmb-wrap");
-  const body  = document.getElementById("blmb-body");
-  const count = document.getElementById("blmb-count");
-  if (!wrap) return;
-  const items = state.bloombergItems || [];
-  if (!items.length) { wrap.style.display = "none"; return; }
-  wrap.style.display = "";
-  if (count) count.textContent = items.length + " заголовков";
-  if (!body) return;
-  body.innerHTML = items.map(it => {
-    const t = it.title_ru || it.title || "";
-    const link = translatedLink(it.link, it.sourceName);
-    const time = it.date ? formatTime(it.date) : "";
-    return `<div class="blmb-item">
-      <span class="blmb-time">${time}</span>
-      <span class="blmb-title"><a href="${escHtml(link)}" target="_blank"
-        rel="noopener" onclick="event.stopPropagation()">${escHtml(t)}</a></span>
-    </div>`;
-  }).join("");
-}
+function toggleBloomberg() {}
+function renderBloombergWidget() {}
 function renderStatusBar() {
   const el = document.getElementById("sources-inline");
   if (!el) return;
@@ -2190,11 +2084,7 @@ function cardHTML(item) {
     ${perspHTML}
     ${chips ? `<div class="csrcs">${chips}</div>` : ""}
     <div class="card-expand" id="expand-${item.id}">
-      <div class="expand-label">Резюме
-        ${item.link ? `<a class="expand-orig-btn" href="${escHtml(item.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Оригинал</a>` : ""}
-      </div>
+      <div class="expand-label">Резюме</div>
       <div id="expand-body-${item.id}"></div>
       ${aiAsk}
       <div class="expand-footer">
@@ -3039,7 +2929,7 @@ async function enrichNoKey(card, bodyEl, cardId) {
   }
 
   // Always translate western sources OR English text
-  const westernSources = ["BBC","Al Jazeera","Forbes US","Guardian","Reuters","Financial Times","Politico","AP"];
+  const westernSources = ["BBC","Al Jazeera","Guardian","Politico"];
   const isWestern = (card.sources||[]).some(s => westernSources.some(w => s.includes(w)));
   if (state.lang === "ru" && (isWestern || isTextEnglish(text))) {
     // Chunked translation: split at 1200 chars, max 6000 total
@@ -3064,8 +2954,11 @@ async function enrichNoKey(card, bodyEl, cardId) {
   const bodyNow = document.getElementById("expand-body-" + cardId);
   if (bodyNow) {
     const badge = (isWestern || (text && isTextEnglish(text)))
-      ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:5px">
-           <span style="font-size:12px">🌐</span> Переведено с английского
+      ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+           <span style="font-size:13px">🌐</span> Переведено с английского · 
+           <a href="${(card.raw||[{link:card.link}])[0].link}" target="_blank" 
+              style="color:var(--accent2);text-decoration:none" 
+              onclick="event.stopPropagation()">оригинал</a>
          </div>`
       : "";
     bodyNow.innerHTML = badge + renderTextHTML(finalText, false, false);
@@ -3124,7 +3017,7 @@ async function generateAISummary(card, bodyEl, cardId) {
     : "in English";
 
   // Extended summary for serious outlets
-  const SERIOUS_OUTLETS = ["BBC","Bloomberg","Al Jazeera","Financial Times","FT","Economist","Guardian","Reuters","Politico","AP"];
+  const SERIOUS_OUTLETS = ["BBC","Al Jazeera","Economist","Guardian","Politico"];
   const isSerious = (card.sources||[]).some(s => SERIOUS_OUTLETS.some(o => s.includes(o)));
   const srcCount = (card.raw||[]).length;
   const multiNote = srcCount > 1 ? "\n- Если источники расходятся — упомяни одной фразой в тексте" : "";
@@ -3193,43 +3086,14 @@ async function askCardAI(cardId) {
   msgs.scrollTop = msgs.scrollHeight;
 
   const title   = card.title_ru || card.title || "";
-  const summary = displaySummary(card).slice(0, 600);
-  const article = getRSSText(card).slice(0, 1500);
-  const sources = (card.sources||[]).join(", ");
-  const catName = (CATEGORIES.find(c=>c.id===card.cat)||{}).label || card.cat;
+  const summary = displaySummary(card).slice(0, 400);
+  const article = getRSSText(card).slice(0, 800);
 
-  // Use system+user messages for proper context handling
-  const systemMsg = `Ты умный новостной ассистент. Ты помогаешь читателю разобраться в новости.
-У тебя есть полный контекст статьи ниже. Отвечай по-русски, конкретно и информативно.
-Можешь использовать свои знания за пределами статьи — например, кто такие упомянутые люди, что происходило раньше, какой контекст.
-Если вопрос не связан с новостью, отвечай всё равно — ты общий ассистент.
-
-НОВОСТЬ:
-Раздел: ${catName}
-Источник: ${sources}
-Заголовок: ${title}
-Резюме: ${summary}
-Текст: ${article}`;
+  const prompt = `Контекст новости:\n\nZAGOLOVOK: ${title}\n\nRESYUME: ${summary}\n\nSTATYA: ${article}\n\nВопрос пользователя: ${question}\n\nОтветь кратко, по делу, по-русски. Можно использовать внешние знания.`;
 
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 500,
-        temperature: 0.7,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: question }
-        ]
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!res.ok) throw new Error("groq " + res.status);
-    const d = await res.json();
-    const reply = d.choices?.[0]?.message?.content?.trim() || "Нет ответа";
-    aDiv.textContent = reply;
+    const text = await groqCall(prompt, 400, key);
+    aDiv.textContent = text || "Нет ответа";
   } catch(e) {
     aDiv.textContent = "Ошибка: " + (e.message||"");
   } finally {
