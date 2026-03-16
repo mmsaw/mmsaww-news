@@ -697,40 +697,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .share-screenshot-btn:hover{border-color:var(--accent);color:var(--accent)}
 .share-screenshot-btn.loading{opacity:.5;cursor:not-allowed}
 .fstatus{font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:6px;white-space:nowrap;animation:blink 1.5s infinite}
-
-/* HIGH IMPACT badge */
-.impact-badge{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;padding:2px 7px;border-radius:10px;background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.25);text-transform:uppercase}
-[data-theme=dark] .impact-badge{background:rgba(248,113,113,.12);color:#f87171;border-color:rgba(248,113,113,.25)}
-
-/* IN-CARD AI ASSISTANT */
-.card-ai-ask{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
-.card-ai-ask-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:5px}
-.card-ai-ask-msgs{font-size:12.5px;line-height:1.6;color:var(--text2);margin-bottom:8px;max-height:200px;overflow-y:auto}
-.card-ai-ask-msg-user{color:var(--text);font-weight:600;margin-bottom:2px}
-.card-ai-ask-msg-ai{color:var(--text2);margin-bottom:8px;padding-left:10px;border-left:2px solid var(--accent)}
-.card-ai-ask-row{display:flex;gap:6px;align-items:center}
-.card-ai-ask-input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none}
-.card-ai-ask-input:focus{border-color:var(--accent)}
-.card-ai-ask-btn{padding:5px 10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:5px;color:var(--accent2);font-family:var(--mono);font-size:11px;cursor:pointer;flex-shrink:0;transition:all .15s}
-.card-ai-ask-btn:hover{background:var(--accent);color:#fff}
-.card-ai-ask-btn:disabled{opacity:.4;cursor:not-allowed}
-
-/* MORNING BRIEF */
-.brief-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .15s;flex-shrink:0}
-.brief-btn:hover{border-color:var(--accent);color:var(--accent)}
-.brief-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:16px}
-.brief-overlay.open{display:flex}
-.brief-modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.brief-modal-head{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
-.brief-modal-title{font-family:var(--head);font-size:16px;font-weight:800;letter-spacing:.04em;flex:1}
-.brief-modal-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0 4px;transition:color .15s}
-.brief-modal-close:hover{color:var(--text)}
-.brief-modal-body{padding:20px;font-size:14px;line-height:1.75;color:var(--text)}
-.brief-modal-body p{margin:8px 0}
-.brief-modal-body b{color:var(--text)}
-.brief-modal-body .brief-section{margin-bottom:16px;padding:12px 16px;background:var(--bg2);border-radius:8px;border-left:3px solid var(--accent)}
-.brief-loading{display:flex;align-items:center;gap:10px;padding:20px;color:var(--text3);font-family:var(--mono);font-size:12px}
-.brief-no-key{padding:20px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:12px}
 </style>
 </head>
 <body>
@@ -750,7 +716,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
       <div class="hdr-time">
         <span class="live"></span>
       </div>
-      <button class="brief-btn" onclick="openMorningBrief()" title="Утренний брифинг">☕ Брифинг</button>
       <button class="lang-btn" id="lang-btn" onclick="toggleLang()" title="Переключить язык">RU</button>
       <button class="theme-btn" onclick="toggleTheme()">
         <span id="theme-icon">🌙</span>
@@ -758,19 +723,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
       <button class="gear-btn" onclick="toggleSettings()" title="API ключ">⚙</button>
     </div>
   </div>
-
-<!-- MORNING BRIEF MODAL -->
-<div class="brief-overlay" id="brief-overlay" onclick="if(event.target===this)closeMorningBrief()">
-  <div class="brief-modal">
-    <div class="brief-modal-head">
-      <span class="brief-modal-title">☕ Утренний брифинг</span>
-      <button class="brief-modal-close" onclick="closeMorningBrief()">✕</button>
-    </div>
-    <div class="brief-modal-body" id="brief-modal-body">
-      <div class="brief-loading"><div class="siri-dots"><span></span><span></span><span></span></div> Составляю брифинг…</div>
-    </div>
-  </div>
-</div>
   <div class="settings-panel" id="api-panel">
     <!-- Model selector for Siri summary -->
     <div class="model-row">
@@ -862,6 +814,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 </div>
 
 
+<!-- BLOOMBERG WIDGET -->
+<div class="blmb-wrap" id="blmb-wrap" style="display:none">
+  <div class="blmb-head" onclick="toggleBloomberg()">
+    <span class="blmb-logo">Bloomberg</span>
+    <span class="blmb-count" id="blmb-count"></span>
+    <span class="blmb-chevron" id="blmb-chevron">▸</span>
+  </div>
+  <div class="blmb-body" id="blmb-body" style="display:none"></div>
+</div>
 
 <!-- SIRI AI WIDGET -->
 <div class="siri-wrap idle" id="siri-wrap" style="display:none">
@@ -935,11 +896,12 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://www.forbes.ru/rss/news",
+      "https://www.forbes.ru/rss/news",          // прямой RSS
       "https://www.forbes.ru/rss",
       "https://www.forbes.ru/newsfeed/rss",
       "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
       "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
+      // Telegram @forbes_russia — дополнительный источник
       "https://rsshub.app/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
     ],
@@ -953,6 +915,7 @@ const SOURCES = [
       "https://frankmedia.ru/feed",
       "https://frankmedia.ru/?feed=rss2",
       "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
+      // Telegram @frank_media — дополнительный источник
       "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
       "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
     ],
@@ -978,8 +941,6 @@ const SOURCES = [
     ],
     name:"Al Jazeera", country:"west"
   },
-
-  // ── The Guardian
   {
     urls: [
       "https://www.theguardian.com/world/rss",
@@ -988,12 +949,9 @@ const SOURCES = [
     ],
     name:"Guardian", country:"west", maxAgeDays:2
   },
-  // ── Politico
   {
     urls: [
-      // Google News первым — самый стабильный через прокси
       "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=politico+politics&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
       "https://www.politico.com/rss/politics08.xml",
     ],
@@ -1003,6 +961,8 @@ const SOURCES = [
   // ── Локальные ─────────────────────────────────────────────────────────────
   {
     urls: [
+      // Google News надёжнее через прокси чем прямые RSS
+      "https://news.google.com/rss/search?q=Ярославль&hl=ru&gl=RU&ceid=RU:ru",
       "https://76.ru/rss/",
       "https://76.ru/rss/all",
       "https://76.ru/feed/",
@@ -1011,6 +971,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "https://news.google.com/rss/search?q=Москва&hl=ru&gl=RU&ceid=RU:ru",
       "https://www.m24.ru/rss.xml",
       "https://m24.ru/rss.xml",
       "https://www.m24.ru/rss",
@@ -1036,6 +997,28 @@ const PROXIES = [
 // ═══════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════
+
+// ── Groq API wrapper with 429 retry ──────────────────────────────────────────
+async function groqFetch(body, key, timeout) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeout || 20000),
+      });
+      if (res.status === 429) {
+        // Rate limited — wait 4s and retry once
+        if (attempt === 0) { await new Promise(r => setTimeout(r, 4000)); continue; }
+        return null;
+      }
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); continue; } return null; }
+  }
+  return null;
+}
 
 let state = {
   cards: [],
@@ -1109,14 +1092,6 @@ function categorizeFallback(title, desc) {
   return "lifestyle";  // sport, culture, crime, health — everything else
 }
 
-// ── HIGH IMPACT scoring ──────────────────────────────────────────────────────
-const HIGH_IMPACT_KW = /война|war\b|санкц|sanctions|нефть\b|oil\b|инфляц|inflation|ключев.*ставк|interest rate|фрс|fed\b|\bфед\b|китай|china|энергетик|energy\b|ядерн|nuclear|кризис|crisis|дефолт|default|рецесс|recession|банкрот|bankrupt|обвал|обрушил|атак|attack|удар\b|strike\b|катастроф|disaster|землетряс|earthquake|цунами|tsunami/i;
-
-function isHighImpact(title, desc) {
-  const t = (title + " " + (desc||"")).slice(0, 300);
-  return HIGH_IMPACT_KW.test(t);
-}
-
 // ── AI BATCH CATEGORIZER ─────────────────────────────────────────────────────
 // RULE: "local" is NOT in AI output — local category is 100% source-gated
 const CAT_PROMPT = `Ты редактор новостного агрегатора. Классифицируй каждую новость по одной из четырёх категорий:
@@ -1129,35 +1104,29 @@ const CAT_PROMPT = `Ты редактор новостного агрегато�
 Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
 [{"i":0,"cat":"finance"},{"i":1,"cat":"lifestyle"},...]`;
 
-// ── Groq API call (reusable) ──────────────────────────────────────────────────
-async function groqCall(prompt, maxTokens, groqKey) {
-  if (!groqKey) return null;
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + groqKey },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: maxTokens,
-        messages: [{ role: "user", content: prompt }]
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!res.ok) return null;
-    const d = await res.json();
-    const raw = d.choices?.[0]?.message?.content;
-    if (Array.isArray(raw)) return raw.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
-    return (raw || "").trim() || null;
-  } catch { return null; }
-}
-
-async function classifyBatch(items, groqKey) {
+async function classifyBatch(items, apiKey) {
   const lines = items.map((it, i) =>
     `${i}. [${it.sourceName}] ${it.title}: ${it.description.slice(0, 120)}`
   ).join("\n");
   try {
-    const text = await groqCall(CAT_PROMPT + "\n\nСтатьи:\n" + lines, 600, groqKey);
-    if (!text) return null;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        messages: [{ role: "user", content: CAT_PROMPT + "\n\nСтатьи:\n" + lines }],
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || "").join("");
     const m = text.match(/\[[\s\S]*?\]/);
     if (!m) return null;
     return JSON.parse(m[0]);
@@ -1185,9 +1154,9 @@ async function categorizeWithAI(rawItems, apiKey) {
   }
 
   const classified = nonLocalItems.map((it, idx) => {
-    const cat = catMap[idx] || categorizeFallback(it.title, it.description);
-    // Hard block: local can never come from AI — discard only that
-    if (!cat || cat === "local") return null;
+    const cat = catMap[idx];
+    // Hard block: if AI somehow returns "local" — discard entirely
+    if (!cat || cat === "lifestyle" || cat === "local") return null;
     return { ...it, cat };
   }).filter(Boolean);
 
@@ -1200,7 +1169,8 @@ async function categorizeWithAI(rawItems, apiKey) {
 // ═══════════════════════════════════════════════════════════
 
 // Words that signal the article is NOT a local city story
-const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|путин|putin|китай|china|иран|iran|израил|israel|сша|usa|газпром|госдума|федераль|минфин|минобороны|центробанк|президент|правительство рф|кремль|kremlin|sanctions|санкц|missile|ракет.*удар|обстрел|наступлен|биткоин|bitcoin|нефть.*цен|brent|доллар.*курс|курс.*доллар|ввп|gdp|инфляц|ставк.*цб|цб.*ставк/i;
+// Only block clearly international/war topics — not generic federal words
+const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|иран|iran|израил|israel|газа|хамас|хуситы|ракетн.*удар|авиаудар|биткоин|bitcoin|brent/i;
 
 // Words that confirm article IS about the city
 const YAROSLAVL_KW = /ярославл|ярослав|ярославск|рыбинск|углич|переславл|тутаев|ростов велик/i;
@@ -1223,31 +1193,26 @@ function isLocalArticle(title, desc, tag) {
 // RSS FETCH WITH PROXY FALLBACK
 // ═══════════════════════════════════════════════════════════
 
-// Try ONE proxy+url combo — returns xml string or null, with up to 2 retries
+// Try ONE proxy+url combo — returns xml string or null
 async function tryOne(proxyObj, sourceUrl, timeout) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeout);
-    try {
-      const res = await fetch(proxyObj.fn(sourceUrl), { signal: ctrl.signal });
-      clearTimeout(tid);
-      if (!res.ok) { if (attempt === 0) continue; return null; }
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(proxyObj.fn(sourceUrl), { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
 
-      if (proxyObj.type === "rss2json") {
-        const json = await res.json();
-        if (json.status !== "ok" || !json.items?.length) { if (attempt === 0) continue; return null; }
-        const xmlItems = json.items.map(it => `<item><title><![CDATA[${it.title||""}]]></title><description><![CDATA[${it.description||it.content||""}]]></description><link>${it.link||""}</link><pubDate>${it.pubDate||""}</pubDate></item>`).join("");
-        return `<?xml version="1.0"?><rss><channel>${xmlItems}</channel></rss>`;
-      }
+    if (proxyObj.type === "rss2json") {
+      const json = await res.json();
+      if (json.status !== "ok" || !json.items?.length) return null;
+      const xmlItems = json.items.map(it => `<item><title><![CDATA[${it.title||""}]]></title><description><![CDATA[${it.description||it.content||""}]]></description><link>${it.link||""}</link><pubDate>${it.pubDate||""}</pubDate></item>`).join("");
+      return `<?xml version="1.0"?><rss><channel>${xmlItems}</channel></rss>`;
+    }
 
-      const ct   = res.headers.get("content-type") || "";
-      const text = ct.includes("json") ? (await res.json()).contents || "" : await res.text();
-      if (text && text.length > 100) return text;
-      if (attempt === 0) continue;
-      return null;
-    } catch { clearTimeout(tid); if (attempt === 0) { await new Promise(r=>setTimeout(r,800)); continue; } return null; }
-  }
-  return null;
+    const ct   = res.headers.get("content-type") || "";
+    const text = ct.includes("json") ? (await res.json()).contents || "" : await res.text();
+    return (text && text.length > 100) ? text : null;
+  } catch { clearTimeout(tid); return null; }
 }
 
 // Race ALL proxy×url combos simultaneously — first valid response wins
@@ -1314,7 +1279,7 @@ async function fetchSource(src) {
     const out  = [];
     let idx = 0;
     els.forEach(el => {
-      if (idx++ >= 50) return;
+      if (idx++ >= 30) return;
       const title = strip(cdata(el.querySelector("title")?.textContent));
       const desc  = strip(cdata(
         el.querySelector("description")?.textContent ||
@@ -1325,11 +1290,11 @@ async function fetchSource(src) {
       const rawDate = el.querySelector("pubDate,published,updated")?.textContent;
       const date = rawDate ? new Date(rawDate) : new Date();
       if (!title || title.length < 5) return;
-      // Tagged sources (YarNews / Москва24): ONLY keep articles that are
-      // genuinely about that city — drop anything national/international
+      // For tagged local sources: only reject clearly international/war content
+      // The source URL itself already scopes to the right city
       if (src.tag) {
-        const isLocalContent = isLocalArticle(title, desc, src.tag);
-        if (!isLocalContent) return; // discard silently
+        const t = (title + " " + desc).toLowerCase();
+        if (NATIONAL_KW.test(t)) return;
       }
       const cat = src.tag ? "local" : "pending";
       // Filter out articles older than maxAgeDays (for sources like RBC with pinned pages)
@@ -1392,7 +1357,6 @@ function makeCard(group) {
     title_en: null,   // filled lazily when switching to EN
     summary_en: null,
     needsTranslation,
-    impactHigh: isHighImpact(p.title, p.description),
     cat: p.cat, tag: p.tag, sources, link: p.link, date: p.date,
     time: formatTime(p.date),
     perspectives: (ru.length && west.length) ? {
@@ -1405,12 +1369,11 @@ function makeCard(group) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// AI SYNTHESIS (optional, needs Groq key)
+// AI SYNTHESIS (optional, needs API key)
 // ═══════════════════════════════════════════════════════════
 
 async function synthesize(card) {
-  const key = state.groqKey;
-  if (!key || card.raw.length < 2) return card;
+  if (!"" || card.raw.length < 2) return card;
 
   const ru   = card.raw.filter(i=>i.sourceCountry==="ru");
   const west = card.raw.filter(i=>i.sourceCountry==="west");
@@ -1423,8 +1386,16 @@ async function synthesize(card) {
   const prompt = `Объедини эти новости об одном событии. Только JSON без markdown:\n{"title":"до 80 символов","summary":"2-3 предложения",${pf}}\n\n${snips}`;
 
   try {
-    const text = await groqCall(prompt, 350, key);
-    if (!text) return card;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:350,
+        messages:[{role:"user",content:prompt}] }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return card;
+    const data = await res.json();
+    const text = (data.content||[]).map(b=>b.text||"").join("");
     const m = text.match(/\{[\s\S]*?\}/);
     if (!m) return card;
     const p = JSON.parse(m[0]);
@@ -1452,7 +1423,7 @@ function saveCards(cards) {
       cat: c.cat, tag: c.tag, sources: c.sources, link: c.link,
       date: c.date?.toISOString?.() || c.date,
       time: c.time, needsTranslation: c.needsTranslation,
-      synthesized: c.synthesized, impactHigh: c.impactHigh, firstSeen: c.firstSeen || Date.now(),
+      synthesized: c.synthesized, firstSeen: c.firstSeen || Date.now(),
       raw: (c.raw||[]).map(r=>({
         title: r.title, description: r.description,
         link: r.link, sourceName: r.sourceName,
@@ -1464,7 +1435,7 @@ function saveCards(cards) {
 }
 
 // Sources removed from the app — purge their cards from cache
-const DEAD_SOURCES = new Set([]);
+const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters","DropsCapital"]);
 
 function loadStoredCards() {
   try {
@@ -1600,7 +1571,31 @@ async function loadAll() {
   state.lastUpdated = new Date();
   setRefreshState(false);
 
-  const allItems = results.flat();
+  const allItems = results.flat().filter(it => {
+    const src = SOURCES.find(s => s.name === it.sourceName);
+    if (src?.bloombergOnly) {
+      // Stash bloomberg items separately, don't add to main feed
+      state.bloombergItems = state.bloombergItems || [];
+      if (!state.bloombergItems.find(x => x.link === it.link)) {
+        state.bloombergItems.push(it);
+      }
+      return false;
+    }
+    return true;
+  });
+  state.bloombergItems = (state.bloombergItems || [])
+    .sort((a,b) => b.date - a.date)
+    .slice(0, 30);
+  renderBloombergWidget();
+  // Translate Bloomberg titles to Russian in background
+  if (state.lang === "ru") {
+    (state.bloombergItems || []).forEach(async it => {
+      if (!it.title_ru && it.title) {
+        const tr = await gtranslate(it.title, "ru");
+        if (tr) { it.title_ru = tr; renderBloombergWidget(); }
+      }
+    });
+  }
 
   // ── Global title dedup: remove near-identical headlines across sources
   const _dedupSeen = new Map();
@@ -1611,16 +1606,10 @@ async function loadAll() {
     return true;
   });
 
-  // ── Categorize: Groq AI if key available, else fallback regex ──────────────
+  // ── Categorize: AI if key available, else fallback regex ──────────────────
   let categorized;
-  if (state.groqKey) {
-    state.classifying = true;
-    renderStatusBar();
-    categorized = await categorizeWithAI(dedupedItems, state.groqKey);
-    state.classifying = false;
-    renderStatusBar();
-  } else {
-    // No key: local = tagged sources only, others get regex fallback
+  {
+    // No API key: local = tagged sources only, others get regex fallback
     const localFallback    = dedupedItems.filter(it => it.tag);
     const nonLocalFallback = dedupedItems.filter(it => !it.tag);
     const classifiedFallback = nonLocalFallback.map(it => {
@@ -1649,12 +1638,12 @@ async function loadAll() {
   renderTicker();
   renderContent();
 
-  // Background RU translation — Groq Llama if key, Google Translate otherwise
+  // Background RU translation — Groq if key, Google Translate otherwise
   translateCards(state.cards, "ru", "");
 
-  // AI Siri sentiment — after cards loaded
+  // AI Siri sentiment — delay 3s to avoid Groq 429 with translateCards
   state.sentimentDone = false;
-  triggerSentiment();
+  setTimeout(() => triggerSentiment(), 3000);
 
 
 }
@@ -1664,7 +1653,7 @@ async function loadAll() {
 // ═══════════════════════════════════════════════════════════
 
 // Translate a batch of {title, summary} objects → returns [{title_ru, summary_ru}, ...]
-async function translateBatch(items, targetLang, groqKey) {
+async function translateBatch(items, targetLang, apiKey) {
   const dir = targetLang === "ru"
     ? "Переведи на русский язык. Перевод должен звучать естественно, как написанный носителем языка."
     : "Translate to English. The translation should sound natural, as if written by a native speaker.";
@@ -1688,8 +1677,26 @@ ${i}|SUMMARY|${it.summary}`
 ${lines}`;
 
   try {
-    const text = await groqCall(prompt, 2000, groqKey);
-    if (!text) return null;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || "").join("");
+
+    // Parse response lines
     const result = items.map(() => ({ title: null, summary: null }));
     text.split("\n").forEach(line => {
       const m = line.match(/^(\d+)\|(TITLE|SUMMARY)\|(.+)$/);
@@ -1721,8 +1728,7 @@ async function gtranslate(text, targetLang) {
   } catch { return null; }
 }
 
-async function translateCards(cards, targetLang, _ignored) {
-  const groqKey = state.groqKey;   // always from state
+async function translateCards(cards, targetLang, apiKey) {
   const fieldT = targetLang === "ru" ? "title_ru"   : "title_en";
   const fieldS = targetLang === "ru" ? "summary_ru"  : "summary_en";
 
@@ -1737,14 +1743,14 @@ async function translateCards(cards, targetLang, _ignored) {
   state.translating = true;
   renderStatusBar();
 
-  if (groqKey) {
-    // ── Groq Llama: batch translation (high quality) ──────────────────────
+  if (apiKey) {
+    // ── Claude Haiku: batch translation (high quality) ──────────────────────
     const BATCH = 8;
     for (let i = 0; i < toTranslate.length; i += BATCH) {
       const batch = toTranslate.slice(i, i + BATCH);
       const result = await translateBatch(
         batch.map(c => ({ title: c.title, summary: c.summary })),
-        targetLang, groqKey
+        targetLang, apiKey
       );
       if (result) {
         batch.forEach((card, bi) => {
@@ -1753,7 +1759,7 @@ async function translateCards(cards, targetLang, _ignored) {
           if (r?.summary) card[fieldS] = r.summary;
         });
       } else {
-        // Groq failed — fall back to Google for this batch
+        // Claude failed — fall back to Google for this batch
         await Promise.all(batch.map(async card => {
           const [t, s] = await Promise.all([
             gtranslate(card.title, targetLang),
@@ -1839,8 +1845,36 @@ function renderHeader() {
 
 function toggleSrcBar() { /* merged into filterbar */ }
 
-function toggleBloomberg() {}
-function renderBloombergWidget() {}
+function toggleBloomberg() {
+  const wrap = document.getElementById("blmb-wrap");
+  const body = document.getElementById("blmb-body");
+  const chev = document.getElementById("blmb-chevron");
+  if (!wrap) return;
+  const open = wrap.classList.toggle("open");
+  if (body) body.style.display = open ? "" : "none";
+}
+
+function renderBloombergWidget() {
+  const wrap  = document.getElementById("blmb-wrap");
+  const body  = document.getElementById("blmb-body");
+  const count = document.getElementById("blmb-count");
+  if (!wrap) return;
+  const items = state.bloombergItems || [];
+  if (!items.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  if (count) count.textContent = items.length + " заголовков";
+  if (!body) return;
+  body.innerHTML = items.map(it => {
+    const t = it.title_ru || it.title || "";
+    const link = translatedLink(it.link, it.sourceName);
+    const time = it.date ? formatTime(it.date) : "";
+    return `<div class="blmb-item">
+      <span class="blmb-time">${time}</span>
+      <span class="blmb-title"><a href="${escHtml(link)}" target="_blank"
+        rel="noopener" onclick="event.stopPropagation()">${escHtml(t)}</a></span>
+    </div>`;
+  }).join("");
+}
 function renderStatusBar() {
   const el = document.getElementById("sources-inline");
   if (!el) return;
@@ -2012,15 +2046,13 @@ function skelHTML() {
 
 // ── Google Translate proxy for western sources ───────────────
 const WESTERN_DOMAINS = ["bbc.com","bbc.co.uk","wsj.com","ft.com","aljazeera.com",
-  "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com",
-  "politico.com","apnews.com","economist.com","ft.com"];
+  "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com"];
 
 function isEnglishSource(sourceName, link) {
   const src = (sourceName||"").toLowerCase();
   const url = (link||"").toLowerCase();
   return WESTERN_DOMAINS.some(d => url.includes(d)) ||
-    ["wsj","bbc","ft","al jazeera","bloomberg","guardian","reuters","politico","ap news",
-     "financial times","associated press","economist"].some(n => src.includes(n));
+    ["wsj","bbc","ft","al jazeera","bloomberg","guardian","reuters"].some(n => src.includes(n));
 }
 
 function translatedLink(link, sourceName) {
@@ -2054,29 +2086,12 @@ function cardHTML(item) {
     </div>`;
   }
 
-  const impactBadge = item.impactHigh ? `<span class="impact-badge">⚡ High Impact</span>` : "";
-
   const chips    = (item.sources||[]).map(s=>`<span class="chip">${escHtml(s)}</span>`).join("");
   const safeLink = (item.link||"").replace(/"/g,"&quot;");
 
-  // In-card AI assistant (only if Groq key available)
-  const aiAsk = state.groqKey ? `
-    <div class="card-ai-ask" id="card-ai-${item.id}">
-      <div class="card-ai-ask-label">🤖 Спросить AI</div>
-      <div class="card-ai-ask-msgs" id="card-ai-msgs-${item.id}"></div>
-      <div class="card-ai-ask-row">
-        <input class="card-ai-ask-input" id="card-ai-input-${item.id}"
-          placeholder="Ваш вопрос по этой новости…"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();askCardAI('${item.id}')}"
-          onclick="event.stopPropagation()">
-        <button class="card-ai-ask-btn" id="card-ai-btn-${item.id}"
-          onclick="event.stopPropagation();askCardAI('${item.id}')">Ask</button>
-      </div>
-    </div>` : "";
-
   return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
     <div class="ch">
-      <div class="ctags">${catBadge}${tagBadge}${synthBadge}${srcCnt}${transLabel}${impactBadge}</div>
+      <div class="ctags">${catBadge}${tagBadge}${synthBadge}${srcCnt}${transLabel}</div>
       <span class="ctime">${item.time}</span>
     </div>
     <h3 class="ctitle">${escHtml(dTitle)}${item.isNew ? '<span class="card-new-badge">NEW</span>' : ""}</h3>
@@ -2085,7 +2100,6 @@ function cardHTML(item) {
     <div class="card-expand" id="expand-${item.id}">
       <div class="expand-label">Резюме</div>
       <div id="expand-body-${item.id}"></div>
-      ${aiAsk}
       <div class="expand-footer">
         ${(item.raw||[{link:item.link,sourceName:(item.sources||[])[0]||""}])
           .filter((r,i,a)=>r.link && a.findIndex(x=>x.link===r.link)===i)
@@ -2610,21 +2624,12 @@ async function generateSentiment(cards, filterCat) {
   try {
     let text = null;
     if (m === "groq") {
-      const res = await Promise.race([
-        fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            max_tokens: 500,
-            messages: [{ role: "user", content: prompt }]
-          })
-        }),
-        new Promise((_,r) => setTimeout(() => r("timeout"), 20000))
-      ]);
-      if (!res.ok) throw new Error("groq " + res.status);
-      const d = await res.json();
-      text = d.choices?.[0]?.message?.content?.trim() || null;
+      const d = await groqFetch({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 400,
+        messages: [{ role: "user", content: prompt }]
+      }, key, 25000);
+      text = d?.choices?.[0]?.message?.content?.trim() || null;
     }
 
     if (!text) throw new Error("empty response");
@@ -2677,6 +2682,19 @@ loadWeather();
 
 loadAll();
 
+// ── Auto-refresh: every 15 min while open, and when returning to tab ─────────
+setInterval(() => {
+  if (document.hidden || expandedId || state.loading) return;
+  loadAll();
+}, 15 * 60 * 1000);
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !state.loading && !expandedId) {
+    const last = state.lastUpdated;
+    if (!last || Date.now() - last.getTime() > 10 * 60 * 1000) loadAll();
+  }
+});
+
 // ═══════════════════════════════════════════════════════════
 // ARTICLE INLINE EXPAND
 // ═══════════════════════════════════════════════════════════
@@ -2721,15 +2739,15 @@ function expandCard(cardId) {
 
   // ── Step 1: show RSS content immediately (always available) ──────────────
   const rssText = getRSSText(card);
-  bodyEl.innerHTML = renderTextHTML(rssText, false, !!state.groqKey);
+  bodyEl.innerHTML = renderTextHTML(rssText, false, !!"");
 
   // No API key — show RSS immediately, then try to enrich with Jina + gtranslate
-  if (!state.groqKey) {
+  if (!"") {
     enrichNoKey(card, bodyEl, cardId);
     return;
   }
 
-  // ── Step 2: with Groq key → fetch article, then AI summary ───────────────
+  // ── Step 2: with key → fetch Jina in background, then Claude ─────────────
   generateAISummary(card, bodyEl, cardId);
 }
 
@@ -2758,7 +2776,7 @@ function renderTextHTML(text, isAI, loadingAI, powered) {
   const hint = loadingAI
     ? `<span class="expand-powered" style="color:var(--accent2)">&#x1F9E0; Генерирую резюме…</span>`
     : isAI
-      ? `<span class="expand-powered">${powered||"Groq · Llama 3.3"}</span>`
+      ? `<span class="expand-powered">${powered||"Powered by claude-haiku-4-5-20251001"}</span>`
       : ``;
   return `<p class="expand-summary">${escHtml(text)}</p>${hint}`;
 }
@@ -2843,19 +2861,11 @@ async function fetchArticleText(url) {
       jinaHeaders["X-Target-Selector"] = ".article_text_wrapper, .article__text, [itemprop=articleBody]";
       jinaHeaders["X-Remove-Selector"] = ".article_sidebar, .aside, .related, footer, nav, .tags, .subscribe";
     } else if (url.includes("reuters.com")) {
-      jinaHeaders["X-Target-Selector"] = "[class*=article-body], [class*=ArticleBody], .StandardArticleBody_body, [itemprop=articleBody]";
+      jinaHeaders["X-Target-Selector"] = "[class*=article-body], [class*=ArticleBody], .StandardArticleBody_body";
     } else if (url.includes("bbc.")) {
-      jinaHeaders["X-Target-Selector"] = "[class*=article], article, [itemprop=articleBody]";
+      jinaHeaders["X-Target-Selector"] = "[class*=article], article";
     } else if (url.includes("aljazeera.com")) {
-      jinaHeaders["X-Target-Selector"] = ".wysiwyg, .article-p-wrapper, [class*=ArticleBody], [itemprop=articleBody]";
-    } else if (url.includes("theguardian.com")) {
-      jinaHeaders["X-Target-Selector"] = ".article-body-commercial-selector, [itemprop=articleBody], .content__article-body";
-    } else if (url.includes("ft.com")) {
-      jinaHeaders["X-Target-Selector"] = ".article__content-body, [itemprop=articleBody], .story-body";
-    } else if (url.includes("politico.com")) {
-      jinaHeaders["X-Target-Selector"] = ".story-text, .article__content, [itemprop=articleBody]";
-    } else if (url.includes("apnews.com")) {
-      jinaHeaders["X-Target-Selector"] = ".article, [data-key=article], [itemprop=articleBody]";
+      jinaHeaders["X-Target-Selector"] = ".wysiwyg, .article-p-wrapper, [class*=ArticleBody]";
     }
     const res = await fetch("https://r.jina.ai/" + url, {
       headers: jinaHeaders,
@@ -2877,12 +2887,7 @@ async function fetchArticleText(url) {
     if (!res.ok) return null;
     const raw = await res.text();
     const m = raw.match(/<article[^>]*>([\s\S]{400,}?)<\/article>/i)
-           || raw.match(/<main[^>]*>([\s\S]{400,}?)<\/main>/i)
-           || raw.match(/itemprop="articleBody"[^>]*>([\s\S]{400,}?)<\/div>/i)
-           || raw.match(/class="[^"]*story-body[^"]*"[^>]*>([\s\S]{400,}?)<\/div>/i)
-           || raw.match(/class="[^"]*article-body[^"]*"[^>]*>([\s\S]{400,}?)<\/div>/i)
-           || raw.match(/class="[^"]*post-content[^"]*"[^>]*>([\s\S]{400,}?)<\/div>/i)
-           || raw.match(/class="[^"]*section-content[^"]*"[^>]*>([\s\S]{400,}?)<\/div>/i);
+           || raw.match(/<main[^>]*>([\s\S]{400,}?)<\/main>/i);
     if (!m) return null;
     const clean = decodeEntities(m[1]
       .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -2931,25 +2936,22 @@ async function enrichNoKey(card, bodyEl, cardId) {
   const westernSources = ["BBC","Al Jazeera","Guardian","Politico"];
   const isWestern = (card.sources||[]).some(s => westernSources.some(w => s.includes(w)));
   if (state.lang === "ru" && (isWestern || isTextEnglish(text))) {
-    // Chunked translation: split at 1200 chars, max 6000 total
-    const CHUNK = 1200;
-    const MAX   = 6000;
-    const src   = text.slice(0, MAX);
-    if (src.length > CHUNK) {
+    // For longer Jina text — translate first 2000 chars in chunks of 500
+    if (fromJina && text.length > 600) {
       const chunks = [];
-      for (let i = 0; i < src.length; i += CHUNK) chunks.push(src.slice(i, i + CHUNK));
+      for (let i = 0; i < Math.min(text.length, 4000); i += 500) {
+        chunks.push(text.slice(i, i + 500));
+      }
       const translated = await Promise.all(chunks.map(c => gtranslate(c, "ru")));
       const joined = translated.filter(Boolean).join(" ");
       if (joined.length > 100) text = joined;
     } else {
-      const translated = await gtranslate(src, "ru");
+      const translated = await gtranslate(text.slice(0, 1000), "ru");
       if (translated && translated.length > 50) text = translated;
     }
   }
 
   const display = cutAtSentence(text, 600);
-  // Local extractive fallback: if display text is too short, use TF-IDF
-  const finalText = display.length > 80 ? display : extractiveSummary(getRSSText(card), 4);
   const bodyNow = document.getElementById("expand-body-" + cardId);
   if (bodyNow) {
     const badge = (isWestern || (text && isTextEnglish(text)))
@@ -2960,7 +2962,7 @@ async function enrichNoKey(card, bodyEl, cardId) {
               onclick="event.stopPropagation()">оригинал</a>
          </div>`
       : "";
-    bodyNow.innerHTML = badge + renderTextHTML(finalText, false, false);
+    bodyNow.innerHTML = badge + renderTextHTML(display, false, false);
   }
 }
 
@@ -2984,54 +2986,44 @@ function cutAtSentence(text, maxChars) {
 }
 
 async function generateAISummary(card, bodyEl, cardId) {
-  const groqKey = state.groqKey;
-  if (!groqKey) { enrichNoKey(card, bodyEl, cardId); return; }
-
   const links = [...new Set((card.raw||[]).map(r=>r.link).filter(Boolean))];
 
-  // ── Speed optimisation: skip Jina if RSS description is already rich ──────
-  const rssContent = (card.raw||[])
-    .map(r => decodeEntities(r.description||"")).filter(t => t.length > 40).join("\n\n");
-  const rssIsRich = rssContent.length > 350;
+  const fetched = await Promise.allSettled(links.slice(0, 3).map(fetchArticleText));
 
-  let articleContent = "";
-  let fromFull = false;
-
-  if (!rssIsRich && links.length > 0) {
-    // Try only the FIRST link — not all 3 (each Jina call takes 8-12s)
-    const fetched = await fetchArticleText(links[0]);
-    if (fetched && fetched.length > 150) {
-      const src = (card.raw||[]).find(x => x.link === links[0])?.sourceName || "";
-      articleContent = (src ? "[" + src + "]\n" : "") + fetched;
-      const sentenceCount = (articleContent.match(/[.!?…]+/g)||[]).length;
-      const wordCount2 = articleContent.split(/\s+/).length;
-      fromFull = articleContent.length > 300 && sentenceCount > 3 && sentenceCount/wordCount2 > 0.03;
+  const articleParts = [];
+  links.slice(0, 3).forEach((link, i) => {
+    const r = fetched[i];
+    if (r.status === "fulfilled" && r.value && r.value.length > 150) {
+      const src = (card.raw||[]).find(x => x.link === link)?.sourceName || "";
+      articleParts.push((src ? "[" + src + "]\n" : "") + r.value);
     }
-  }
+  });
+
+  let articleContent = articleParts.join("\n\n---\n\n");
+
+  // Validate: check if content has real sentences (not nav junk)
+  const sentenceCount = (articleContent.match(/[.!?…]+/g)||[]).length;
+  const wordCount2 = articleContent.split(/\s+/).length;
+  const fromFull = articleContent.length > 300 && sentenceCount > 3 && sentenceCount/wordCount2 > 0.03;
 
   if (!fromFull) {
+    // Fall back to RSS — at least it's clean
     articleContent = (card.raw||[])
       .map(r => "[" + (r.sourceName||"") + "] " + r.title + "\n" + decodeEntities(r.description||""))
       .join("\n\n");
   }
 
+  const lang = state.lang === "ru" ? "на русском языке" : "in English";
+  // Force Russian output even if source text is English
   const langInstruction = state.lang === "ru"
     ? "на русском языке (даже если источник на английском — резюме должно быть на русском)"
     : "in English";
 
-  // Extended summary for serious outlets
-  const SERIOUS_OUTLETS = ["BBC","Al Jazeera","Economist","Guardian","Politico"];
-  const isSerious = (card.sources||[]).some(s => SERIOUS_OUTLETS.some(o => s.includes(o)));
   const srcCount = (card.raw||[]).length;
   const multiNote = srcCount > 1 ? "\n- Если источники расходятся — упомяни одной фразой в тексте" : "";
-
-  const lengthReq = isSerious
-    ? "- 5-7 предложений, 120-180 слов — развёрнутое резюме для серьёзного издания"
-    : "- Ровно 3-5 предложений, 80-120 слов — не больше, не меньше";
-
   const prompt = "Напиши резюме новости " + langInstruction + ".\n\n"
     + "ТРЕБОВАНИЯ:\n"
-    + lengthReq + "\n"
+    + "- Ровно 3-5 предложений, 80-120 слов — не больше, не меньше\n"
     + "- Конкретные факты: цифры, имена, даты, места\n"
     + "- НЕ начинай с 'Согласно', 'По данным', 'Сообщается', 'В статье'\n"
     + "- Не пересказывай дословно — авторская выжимка\n"
@@ -3041,222 +3033,35 @@ async function generateAISummary(card, bodyEl, cardId) {
     + articleContent.slice(0, 5000);
 
   try {
-    const text = await groqCall(prompt, isSerious ? 450 : 300, groqKey);
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "",
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!res.ok) throw new Error("api " + res.status);
+    const data = await res.json();
+    const text = (data.content||[]).map(b => b.text||"").join("").trim();
     if (!text) throw new Error("empty");
 
     modalCache[cardId] = {
       text, ai: true,
-      powered: "Groq · Llama 3.3 · " + (fromFull ? "из статьи" : "из RSS")
+      powered: "Powered by claude-haiku-4-5-20251001 · " + (fromFull ? "из статьи" : "из RSS")
     };
     if (expandedId === cardId) renderSummary(bodyEl, cardId);
   } catch {
-    // Fallback: enrichNoKey (Jina + Google Translate)
     const bodyNow = document.getElementById("expand-body-" + cardId);
-    if (bodyNow && expandedId === cardId) enrichNoKey(card, bodyNow, cardId);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// IN-CARD AI ASSISTANT
-// ═══════════════════════════════════════════════════════════
-async function askCardAI(cardId) {
-  const card   = state.cards.find(c => c.id === cardId);
-  const input  = document.getElementById("card-ai-input-" + cardId);
-  const msgs   = document.getElementById("card-ai-msgs-" + cardId);
-  const btn    = document.getElementById("card-ai-btn-" + cardId);
-  if (!card || !input || !msgs) return;
-
-  const question = input.value.trim();
-  if (!question) return;
-
-  const key = state.groqKey;
-  if (!key) return;
-
-  input.value = "";
-  btn.disabled = true;
-
-  // Show user question
-  const uDiv = document.createElement("div");
-  uDiv.className = "card-ai-ask-msg-user";
-  uDiv.textContent = question;
-  msgs.appendChild(uDiv);
-
-  // Placeholder with typing indicator
-  const aDiv = document.createElement("div");
-  aDiv.className = "card-ai-ask-msg-ai";
-  aDiv.textContent = "…";
-  msgs.appendChild(aDiv);
-  msgs.scrollTop = msgs.scrollHeight;
-
-  const title   = card.title_ru   || card.title   || "";
-  const summary = displaySummary(card).slice(0, 600);
-  const article = getRSSText(card).slice(0, 1500);
-  const sources = (card.sources||[]).join(", ");
-  const catName = (CATEGORIES.find(c=>c.id===card.cat)||{}).label || card.cat;
-
-  const systemMsg = `Ты умный новостной ассистент MMSAWW NEWS. Отвечай ВСЕГДА по-русски.
-
-У тебя есть контекст новости:
-Раздел: ${catName}
-Источник: ${sources}
-Заголовок: ${title}
-Резюме: ${summary}
-Текст: ${article}
-
-ПРАВИЛА:
-1. Сначала ищи ответ в контексте новости выше
-2. Если в контексте недостаточно информации — используй свои знания или поиск в интернете
-3. Отвечай конкретно, кратко, по делу
-4. Не говори "в статье не упоминается" — просто отвечай используя все доступные знания`;
-
-  try {
-    const res = await Promise.race([
-      fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-        body: JSON.stringify({
-          model: "compound-beta",       // compound-beta has web search built-in
-          max_tokens: 600,
-          messages: [
-            { role: "system", content: systemMsg },
-            { role: "user",   content: question  }
-          ]
-        })
-      }),
-      new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 25000))
-    ]);
-
-    if (!res.ok) throw new Error("groq " + res.status);
-    const d = await res.json();
-
-    // compound-beta may return content as array of blocks
-    const rawContent = d.choices?.[0]?.message?.content;
-    let reply;
-    if (Array.isArray(rawContent)) {
-      reply = rawContent.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
-    } else {
-      reply = (rawContent || "").trim();
-    }
-
-    aDiv.textContent = reply || "Нет ответа";
-  } catch(e) {
-    // Fallback to regular 70B if compound-beta fails
-    try {
-      const fallback = await groqCall(
-        `${systemMsg}\n\nВопрос: ${question}`, 500, key
-      );
-      aDiv.textContent = fallback || "Нет ответа";
-    } catch {
-      aDiv.textContent = "Ошибка соединения с AI";
-    }
-  } finally {
-    btn.disabled = false;
-    msgs.scrollTop = msgs.scrollHeight;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// LOCAL EXTRACTIVE SUMMARY FALLBACK (no API key)
-// ═══════════════════════════════════════════════════════════
-function extractiveSummary(text, maxSentences) {
-  if (!text) return "";
-  // Split into sentences
-  const sentences = text.match(/[^.!?…]+[.!?…]+/g) || [text];
-  if (sentences.length <= maxSentences) return text.trim();
-
-  // TF-IDF-lite: score sentences by word frequency
-  const words = text.toLowerCase().replace(/[^а-яёa-z0-9\s]/gi,"").split(/\s+/).filter(w=>w.length>3);
-  const freq = {};
-  words.forEach(w => { freq[w] = (freq[w]||0) + 1; });
-  const maxF = Math.max(...Object.values(freq)) || 1;
-  // Normalize
-  Object.keys(freq).forEach(k => { freq[k] = freq[k] / maxF; });
-
-  const scored = sentences.map((s, i) => {
-    const sw = s.toLowerCase().replace(/[^а-яёa-z0-9\s]/gi,"").split(/\s+/);
-    const score = sw.reduce((sum,w) => sum + (freq[w]||0), 0) / (sw.length||1);
-    return { s: s.trim(), score, i };
-  });
-
-  // Take top N by score, then sort back by original position
-  return scored
-    .sort((a,b) => b.score - a.score)
-    .slice(0, maxSentences)
-    .sort((a,b) => a.i - b.i)
-    .map(x => x.s)
-    .join(" ")
-    .trim();
-}
-
-// ═══════════════════════════════════════════════════════════
-// MORNING BRIEF
-// ═══════════════════════════════════════════════════════════
-function openMorningBrief() {
-  const overlay = document.getElementById("brief-overlay");
-  if (!overlay) return;
-  overlay.classList.add("open");
-  generateMorningBrief();
-}
-
-function closeMorningBrief() {
-  const overlay = document.getElementById("brief-overlay");
-  if (overlay) overlay.classList.remove("open");
-}
-
-async function generateMorningBrief() {
-  const body = document.getElementById("brief-modal-body");
-  if (!body) return;
-  const key = state.groqKey;
-
-  if (!key) {
-    body.innerHTML = `<div class="brief-no-key">Для брифинга добавьте ключ Groq в ⚙ Настройки</div>`;
-    return;
-  }
-
-  body.innerHTML = `<div class="brief-loading"><div class="siri-dots"><span></span><span></span><span></span></div> Составляю брифинг…</div>`;
-
-  // Gather top cards by category
-  const cats = { geopolitics:"🌍 Геополитика", finance:"💰 Финансы", tech:"💻 Технологии", lifestyle:"🎭 Лайфстайл" };
-  const byCat = {};
-  Object.keys(cats).forEach(k => {
-    byCat[k] = state.cards.filter(c => c.cat === k).slice(0, 5)
-      .map(c => `- ${c.title_ru || c.title}`).join("\n");
-  });
-
-  const sections = Object.entries(cats)
-    .filter(([k]) => byCat[k])
-    .map(([k,label]) => `### ${label}\n${byCat[k]}`)
-    .join("\n\n");
-
-  const today = new Date().toLocaleDateString("ru-RU", { day:"numeric", month:"long", year:"numeric" });
-  const prompt = `Ты редактор новостного агрегатора. Составь утренний брифинг на ${today}.
-
-Структура:
-1. Маркеты — 1-2 предложения о ключевых финансовых/рыночных событиях
-2. Геополитика — 1-2 предложения о самом важном
-3. Экономика — 1-2 предложения
-4. Технологии — 1 предложение
-5. Итог дня — одна фраза с тональностью
-
-Используй только новости ниже. Будь конкретен: цифры, имена. Максимум 150 слов.
-Ответь ТОЛЬКО HTML параграфами вида: <p><b>💱 Маркеты:</b> ...</p>
-
-Новости:
-${sections}`;
-
-  try {
-    const text = await groqCall(prompt, 500, key);
-    if (!text) throw new Error("empty");
-    const date = new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long"});
-    body.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:16px;letter-spacing:.06em">БРИФИНГ · ${date}</div>${text}
-      <div style="margin-top:16px;font-family:var(--mono);font-size:9px;color:var(--text3)">Groq · Llama 3.3 · ${state.cards.length} новостей</div>`;
-  } catch(e) {
-    // Fallback: generate local brief
-    const localBrief = Object.entries(cats).map(([k, label]) => {
-      const top = state.cards.filter(c=>c.cat===k).slice(0,2).map(c=>c.title_ru||c.title).join("; ");
-      return top ? `<p><b>${label}:</b> ${top}.</p>` : "";
-    }).filter(Boolean).join("");
-    body.innerHTML = localBrief || `<div class="brief-no-key">Нет новостей для брифинга</div>`;
+    if (bodyNow && expandedId === cardId)
+      bodyNow.innerHTML = renderTextHTML(getRSSText(card), false, false);
   }
 }
 
@@ -3272,98 +3077,41 @@ async function shareCardScreenshot(cardId) {
 
   try {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    const cs = getComputedStyle(document.documentElement);
+    const bgColor = isDark ? "#111009" : "#FFFFFF";
 
-    // Resolve CSS variables → real hex values
-    const surface = cs.getPropertyValue("--surface").trim() || (isDark ? "#111009" : "#ffffff");
-    const textCol = cs.getPropertyValue("--text").trim()    || (isDark ? "#f0efe8" : "#111111");
-    const text2   = cs.getPropertyValue("--text2").trim()   || (isDark ? "#a8a89a" : "#555550");
-    const text3   = cs.getPropertyValue("--text3").trim()   || (isDark ? "#666658" : "#99998e");
-    const accent2 = cs.getPropertyValue("--accent2").trim() || "#8b6f00";
-    const border  = cs.getPropertyValue("--border").trim()  || (isDark ? "#2a2a1e" : "#e2e2de");
-    const bgColor = cs.getPropertyValue("--bg").trim()      || (isDark ? "#0d0d08" : "#f7f7f5");
-
-    // Clone card into a visible off-screen div (html2canvas needs it visible)
-    const wrapper = document.createElement("div");
-    wrapper.style.cssText = "position:absolute;left:-9999px;top:0;";
-    document.body.appendChild(wrapper);
-
-    const clone = cardEl.cloneNode(true);
-    // Patch all inline styles to avoid CSS variable issues
-    clone.style.cssText = `background:${surface};color:${textCol};border:1px solid ${border};
-      border-radius:10px;height:auto;overflow:visible;max-width:400px;width:400px;padding:18px;`;
-
-    clone.querySelectorAll("*").forEach(el => {
-      const cls = typeof el.className === "string" ? el.className : "";
-      if (cls.includes("share-screenshot") || cls.includes("expand-close") ||
-          cls.includes("expand-footer")    || cls.includes("card-ai-ask")) {
-        el.remove(); return;
-      }
-      if (cls.includes("ctitle"))         { el.style.color = textCol; el.style.webkitLineClamp = "unset"; el.style.overflow = "visible"; }
-      if (cls.includes("ctime"))          el.style.color = text3;
-      if (cls.includes("expand-label"))   el.style.color = accent2;
-      if (cls.includes("expand-summary")) { el.style.color = textCol; el.style.fontSize = "13px"; el.style.lineHeight = "1.7"; }
-      if (cls.includes("expand-powered")) el.style.color = text3;
-      if (cls.includes("chip"))           { el.style.background = bgColor; el.style.color = text2; }
-    });
-
-    // Subtle branding watermark
-    const brand = document.createElement("div");
-    brand.style.cssText = `margin-top:12px;padding-top:8px;border-top:1px solid ${border};
-      display:flex;align-items:center;justify-content:flex-end;gap:4px;opacity:0.4;`;
-    brand.innerHTML = `
-      <span style="font-family:Georgia,serif;font-size:9px;font-weight:900;
-        letter-spacing:.16em;text-transform:uppercase;color:${textCol};">MMSAWW</span>
-      <span style="font-family:Georgia,serif;font-size:9px;font-weight:400;
-        letter-spacing:.12em;text-transform:uppercase;color:${text3};">NEWS</span>`;
-    clone.appendChild(brand);
-
-    wrapper.appendChild(clone);
-
-    const canvas = await html2canvas(clone, {
-      backgroundColor: surface,
-      scale: Math.min(window.devicePixelRatio * 2, 3),
+    const canvas = await html2canvas(cardEl, {
+      backgroundColor: bgColor,
+      scale: window.devicePixelRatio * 2,
       useCORS: true,
       logging: false,
+      scrollY: -window.scrollY,
     });
 
-    document.body.removeChild(wrapper);
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
 
-    // Mobile: Web Share API
-    const isMobile = navigator.share && navigator.canShare;
-    if (isMobile) {
-      await new Promise(resolve => {
-        canvas.toBlob(async blob => {
-          if (!blob) { resolve(); return; }
-          const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            try { await navigator.share({ files: [file] }); } catch {}
-          } else {
-            _downloadCanvas(canvas);
-          }
-          resolve();
-        }, "image/png");
-      });
-    } else {
-      // Desktop: direct download via dataURL (no blob/async needed)
-      _downloadCanvas(canvas);
-    }
+      // Try Web Share API (mobile + Chrome desktop)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
+          return;
+        } catch(e) { /* cancelled or unsupported */ }
+      }
+
+      // Fallback: download PNG
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "mmsaww-news.png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
+    }, "image/png");
 
   } catch(e) {
-    console.error("Screenshot:", e);
-  } finally {
+    console.error("Screenshot error:", e);
     if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
   }
-}
-
-function _downloadCanvas(canvas) {
-  const a = document.createElement("a");
-  a.href = canvas.toDataURL("image/png");
-  a.download = "mmsaww-news.png";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 }
 
 </script>
