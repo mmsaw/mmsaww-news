@@ -357,6 +357,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   padding:7px 12px;font-family:var(--mono);font-size:11px;color:var(--text3);
   cursor:pointer;transition:all .15s}
 .expand-close:hover{border-color:var(--border2);color:var(--text)}
+.card-ai-ask{margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)}
+.card-ai-ask-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.card-ai-ask-msgs{font-size:13px;line-height:1.65;color:var(--text2);margin-bottom:8px;
+  max-height:220px;overflow-y:auto}
+.card-ai-ask-msg-user{color:var(--text);font-weight:600;margin-bottom:2px;font-size:13px}
+.card-ai-ask-msg-ai{color:var(--text2);margin-bottom:10px;padding-left:10px;
+  border-left:2px solid var(--accent)}
+.card-ai-ask-row{display:flex;gap:6px;align-items:center}
+.card-ai-ask-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none}
+.card-ai-ask-input:focus{border-color:var(--accent)}
+.card-ai-ask-btn{padding:6px 12px;background:var(--accent-bg);border:1px solid var(--accent);
+  border-radius:5px;color:var(--accent2);font-family:var(--mono);font-size:11px;
+  cursor:pointer;flex-shrink:0;transition:all .15s;font-weight:600}
+.card-ai-ask-btn:hover{background:var(--accent);color:#fff}
+.card-ai-ask-btn:disabled{opacity:.4;cursor:not-allowed}
 .expand-hint{font-family:var(--mono);font-size:10px;color:var(--text3)}
 .expand-powered{display:block;margin-top:10px;font-family:var(--mono);font-size:9px;
   color:var(--text3);letter-spacing:.04em;opacity:.7}
@@ -910,16 +927,17 @@ const SOURCES = [
   // ── Финансовые ────────────────────────────────────────────────────────────
   {
     urls: [
-      "https://frankrg.com/feed",
-      "https://frankrg.com/?feed=rss2",
-      "https://frankmedia.ru/feed",
-      "https://frankmedia.ru/?feed=rss2",
-      "https://news.google.com/rss/search?q=site:frankrg.com&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram @frank_media — дополнительный источник
-      "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      // Banki.ru — открытый RSS без Cloudflare, WordPress-движок
+      "https://www.banki.ru/news/rss/",
+      "https://www.banki.ru/news/latest/rss/",
+      "https://www.banki.ru/news/rss/?type=newsline",
+      // Google News — запасной
+      "https://news.google.com/rss/search?q=site:banki.ru&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.google.com/rss/search?q=банки+финансы+ставки&hl=ru&gl=RU&ceid=RU:ru",
+      // Telegram @bankiru_news
+      "https://rsshub.app/telegram/channel/bankiru_news/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
     ],
-    name:"Frank Media", country:"ru"
+    name:"Banki.ru", country:"ru"
   },
   // ── Западные ─────────────────────────────────────────────────────────────
   {
@@ -986,7 +1004,7 @@ const SOURCES = [
 // TYPE "rss2json" — rss2json.com fetches feed server-side (bypasses UA blocks)
 const PROXIES = [
   { type:"cors",     fn: url => `https://corsproxy.io/?${encodeURIComponent(url)}`                   },
-  { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=30` },
+  { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=50` },
   { type:"cors",     fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`      },
   { type:"cors",     fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
   { type:"cors",     fn: url => `https://thingproxy.freeboard.io/fetch/${url}`                       },
@@ -1279,7 +1297,7 @@ async function fetchSource(src) {
     const out  = [];
     let idx = 0;
     els.forEach(el => {
-      if (idx++ >= 30) return;
+      if (idx++ >= 50) return;
       const title = strip(cdata(el.querySelector("title")?.textContent));
       const desc  = strip(cdata(
         el.querySelector("description")?.textContent ||
@@ -2100,6 +2118,18 @@ function cardHTML(item) {
     <div class="card-expand" id="expand-${item.id}">
       <div class="expand-label">Резюме</div>
       <div id="expand-body-${item.id}"></div>
+      ${state.groqKey ? `<div class="card-ai-ask" id="card-ai-${item.id}">
+        <div class="card-ai-ask-label">🤖 Спросить AI</div>
+        <div class="card-ai-ask-msgs" id="card-ai-msgs-${item.id}"></div>
+        <div class="card-ai-ask-row">
+          <input class="card-ai-ask-input" id="card-ai-input-${item.id}"
+            placeholder="Ваш вопрос по этой новости…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();askCardAI('${item.id}')}"
+            onclick="event.stopPropagation()">
+          <button class="card-ai-ask-btn" id="card-ai-btn-${item.id}"
+            onclick="event.stopPropagation();askCardAI('${item.id}')">Ask</button>
+        </div>
+      </div>` : ""}
       <div class="expand-footer">
         ${(item.raw||[{link:item.link,sourceName:(item.sources||[])[0]||""}])
           .filter((r,i,a)=>r.link && a.findIndex(x=>x.link===r.link)===i)
@@ -3032,36 +3062,116 @@ async function generateAISummary(card, bodyEl, cardId) {
     + (fromFull ? "Текст (выдели главное):\n" : "RSS-описание:\n")
     + articleContent.slice(0, 5000);
 
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": "",
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: AbortSignal.timeout(25000),
-    });
-    if (!res.ok) throw new Error("api " + res.status);
-    const data = await res.json();
-    const text = (data.content||[]).map(b => b.text||"").join("").trim();
-    if (!text) throw new Error("empty");
+  const groqKey = state.groqKey;
 
-    modalCache[cardId] = {
-      text, ai: true,
-      powered: "Powered by claude-haiku-4-5-20251001 · " + (fromFull ? "из статьи" : "из RSS")
-    };
-    if (expandedId === cardId) renderSummary(bodyEl, cardId);
+  try {
+    if (groqKey) {
+      const d = await groqFetch({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 350,
+        messages: [{ role: "user", content: prompt }]
+      }, groqKey, 20000);
+      const text = d?.choices?.[0]?.message?.content?.trim();
+      if (text) {
+        modalCache[cardId] = {
+          text, ai: true,
+          powered: "Groq · Llama 3.3 · " + (fromFull ? "из статьи" : "из RSS")
+        };
+        if (expandedId === cardId) renderSummary(bodyEl, cardId);
+        return;
+      }
+    }
+    throw new Error("no key or empty");
   } catch {
     const bodyNow = document.getElementById("expand-body-" + cardId);
     if (bodyNow && expandedId === cardId)
       bodyNow.innerHTML = renderTextHTML(getRSSText(card), false, false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// IN-CARD AI ASSISTANT
+// ═══════════════════════════════════════════════════════════
+async function askCardAI(cardId) {
+  const card  = state.cards.find(c => c.id === cardId);
+  const input = document.getElementById("card-ai-input-" + cardId);
+  const msgs  = document.getElementById("card-ai-msgs-" + cardId);
+  const btn   = document.getElementById("card-ai-btn-" + cardId);
+  if (!card || !input || !msgs) return;
+
+  const question = input.value.trim();
+  if (!question) return;
+  const key = state.groqKey;
+  if (!key) return;
+
+  input.value = "";
+  btn.disabled = true;
+
+  const uDiv = document.createElement("div");
+  uDiv.className = "card-ai-ask-msg-user";
+  uDiv.textContent = question;
+  msgs.appendChild(uDiv);
+
+  const aDiv = document.createElement("div");
+  aDiv.className = "card-ai-ask-msg-ai";
+  aDiv.textContent = "…";
+  msgs.appendChild(aDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const title   = card.title_ru || card.title || "";
+  const summary = displaySummary(card).slice(0, 600);
+  const article = getRSSText(card).slice(0, 1500);
+  const sources = (card.sources||[]).join(", ");
+  const catName = (CATEGORIES.find(c=>c.id===card.cat)||{}).label || card.cat || "";
+
+  const systemMsg = `Ты умный новостной ассистент. Отвечай ВСЕГДА по-русски, конкретно и кратко.
+
+Контекст новости:
+Раздел: ${catName} | Источник: ${sources}
+Заголовок: ${title}
+Резюме: ${summary}
+Текст: ${article}
+
+Правила:
+1. Ищи ответ в контексте новости
+2. Если не хватает — используй свои знания или поиск
+3. Никогда не говори "в статье не упоминается" — просто отвечай`;
+
+  try {
+    // compound-beta has built-in web search
+    const d = await groqFetch({
+      model: "compound-beta",
+      max_tokens: 500,
+      messages: [
+        { role: "system", content: systemMsg },
+        { role: "user",   content: question  }
+      ]
+    }, key, 25000);
+
+    const raw = d?.choices?.[0]?.message?.content;
+    let reply = Array.isArray(raw)
+      ? raw.filter(b=>b.type==="text").map(b=>b.text).join("\n").trim()
+      : (raw||"").trim();
+
+    aDiv.textContent = reply || "Нет ответа";
+  } catch {
+    // fallback to regular 70B
+    try {
+      const d2 = await groqFetch({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user",   content: question  }
+        ]
+      }, key, 20000);
+      aDiv.textContent = d2?.choices?.[0]?.message?.content?.trim() || "Нет ответа";
+    } catch {
+      aDiv.textContent = "Ошибка соединения с AI";
+    }
+  } finally {
+    btn.disabled = false;
+    msgs.scrollTop = msgs.scrollHeight;
   }
 }
 
