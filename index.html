@@ -913,28 +913,27 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://www.forbes.ru/rss/news",          // прямой RSS
+      // Jina scrapes the Forbes RU news feed directly
+      "JINA:https://www.forbes.ru/",
+      "JINA:https://www.forbes.ru/novosti",
+      // RSS fallbacks
+      "https://www.forbes.ru/rss/news",
       "https://www.forbes.ru/rss",
-      "https://www.forbes.ru/newsfeed/rss",
       "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
-      "https://news.google.com/rss/search?q=site:forbes.ru&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram @forbes_russia — дополнительный источник
       "https://rsshub.app/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://rsshub.rssforever.com/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
     ],
     name:"Forbes RU", country:"ru"
   },
   // ── Финансовые ────────────────────────────────────────────────────────────
   {
     urls: [
-      // Banki.ru — открытый RSS без Cloudflare, WordPress-движок
+      // Jina scrapes Banki.ru news feed directly
+      "JINA:https://www.banki.ru/news/lenta/",
+      // RSS fallbacks
       "https://www.banki.ru/news/rss/",
       "https://www.banki.ru/news/latest/rss/",
-      "https://www.banki.ru/news/rss/?type=newsline",
-      // Google News — запасной
-      "https://news.google.com/rss/search?q=site:banki.ru&hl=ru&gl=RU&ceid=RU:ru",
-      "https://news.google.com/rss/search?q=банки+финансы+ставки&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram @bankiru_news
+      "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+      "https://news.google.com/rss/search?q=site:banki.ru+банк&hl=ru&gl=RU&ceid=RU:ru",
       "https://rsshub.app/telegram/channel/bankiru_news/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
     ],
     name:"Banki.ru", country:"ru"
@@ -961,14 +960,6 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://www.theguardian.com/world/rss",
-      "https://www.theguardian.com/business/rss",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:theguardian.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Guardian", country:"west", maxAgeDays:2
-  },
-  {
-    urls: [
       "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
       "https://www.politico.com/rss/politics08.xml",
@@ -979,22 +970,27 @@ const SOURCES = [
   // ── Локальные ─────────────────────────────────────────────────────────────
   {
     urls: [
-      // Google News надёжнее через прокси чем прямые RSS
-      "https://news.google.com/rss/search?q=Ярославль&hl=ru&gl=RU&ceid=RU:ru",
+      "https://news.yandex.ru/yaroslavl.rss",
+      "https://yarnovosti.ru/rss/",
+      "https://yarnovosti.ru/feed/",
+      "https://news.google.com/rss/search?q=Ярославль+новости&hl=ru&gl=RU&ceid=RU:ru",
       "https://76.ru/rss/",
-      "https://76.ru/rss/all",
-      "https://76.ru/feed/",
     ],
-    name:"76.ru", country:"ru", tag:"Ярославль"
+    name:"Ярославль", country:"ru", tag:"Ярославль"
   },
   {
     urls: [
-      "https://news.google.com/rss/search?q=Москва&hl=ru&gl=RU&ceid=RU:ru",
+      // Jina scrapes m24.ru and mos.ru directly
+      "JINA:https://www.m24.ru/",
+      "JINA:https://www.mos.ru/news/",
+      // RSS fallbacks
       "https://www.m24.ru/rss.xml",
-      "https://m24.ru/rss.xml",
-      "https://www.m24.ru/rss",
+      "https://news.yandex.ru/moscow.rss",
+      "https://www.mos.ru/rss/",
+      "https://mosday.ru/news/rss.xml",
+      "https://news.google.com/rss/search?q=Москва+мэрия+OR+транспорт+OR+ЖКХ&hl=ru&gl=RU&ceid=RU:ru",
     ],
-    name:"Москва 24", country:"ru", tag:"Москва"
+    name:"Москва", country:"ru", tag:"Москва"
   },
 ];
 
@@ -1237,40 +1233,91 @@ async function tryOne(proxyObj, sourceUrl, timeout) {
 async function fetchSource(src) {
   const urlList = src.urls || [src.url];
 
-  // ── Special: Jina scraper for JS-heavy sites (JINA: prefix) ─────────────
+  // ── Special: Jina scraper for JS-rendered news feed pages (JINA: prefix) ──
   if (urlList.some(u => u.startsWith("JINA:"))) {
-    const targetUrl = urlList.find(u => u.startsWith("JINA:")).slice(5);
-    const out = [];
-    try {
-      const res = await Promise.race([
-        fetch("https://r.jina.ai/" + targetUrl, {
-          headers: { "X-Timeout": "12", "Accept": "text/plain" }
-        }),
-        new Promise((_,r) => setTimeout(() => r(new Error("to")), 14000))
-      ]);
-      if (res.ok) {
+    const jinaUrls = urlList.filter(u => u.startsWith("JINA:")).map(u => u.slice(5));
+    const rssUrls  = urlList.filter(u => !u.startsWith("JINA:"));
+
+    // Try Jina scrape first
+    for (const targetUrl of jinaUrls) {
+      try {
+        const domain = new URL(targetUrl).hostname.replace("www.", "");
+        const res = await Promise.race([
+          fetch("https://r.jina.ai/" + targetUrl, {
+            headers: {
+              "X-Timeout": "15",
+              "Accept": "text/plain",
+              "X-Return-Format": "markdown",
+            }
+          }),
+          new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 16000))
+        ]);
+        if (!res.ok) continue;
         const text = await res.text();
+        const out = [];
         const seen = new Set();
-        let count = 0;
-        for (const line of text.split("\n")) {
-          if (count >= 20) break;
-          const m = line.match(/\[([^\]]{10,150})\]\((https:\/\/dropscapital\.com[^)]+)\)/);
-          if (!m) continue;
-          const [, title, link] = m;
-          if (seen.has(link) || title.length < 10) continue;
+
+        // Extract all markdown links: [Title](URL)
+        // Filter: only links pointing to the same domain's article pages
+        const linkRe = /\[([^\]]{15,200})\]\((https?:\/\/[^)]+)\)/g;
+        let m;
+        while ((m = linkRe.exec(text)) !== null && out.length < 30) {
+          const [, rawTitle, link] = m;
+          // Must be same domain
+          try { if (!new URL(link).hostname.includes(domain)) continue; } catch { continue; }
+          // Skip nav/menu/category links (too short or all-caps)
+          const title = rawTitle.replace(/\s+/g, " ").trim();
+          if (title.length < 20) continue;
+          if (seen.has(link)) continue;
+          // Skip obvious non-article paths
+          if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
           seen.add(link);
+          // Estimate date: spread items over last 8 hours
+          const date = new Date(Date.now() - out.length * 16 * 60000);
           out.push({
-            title: title.trim(), description: title.trim(), link,
-            date: new Date(Date.now() - count * 3600000),
-            cat: src.cat || "finance",
+            title: title, description: title,
+            link, date,
+            cat: src.cat || "pending",
             sourceName: src.name, sourceCountry: src.country,
-            tag: null, isTg: false
+            tag: src.tag || null, isTg: false
           });
-          count++;
         }
-      }
-    } catch(e) { /* Jina unavailable */ }
-    return out;
+        if (out.length >= 3) return out;
+      } catch {}
+    }
+
+    // Jina failed — fall through to regular RSS proxies for fallback URLs
+    if (!rssUrls.length) return [];
+    // Replace urlList with fallback RSS URLs and continue to normal proxy logic
+    const fallbackList = rssUrls;
+    const races2 = [];
+    for (const u of fallbackList) {
+      for (const proxy of PROXIES) races2.push(tryOne(proxy, u, 7000));
+    }
+    const xml2 = await Promise.any(
+      races2.map(p => p.then(v => v ?? Promise.reject("null")))
+    ).catch(() => null);
+    if (!xml2) return [];
+    try {
+      const doc = new DOMParser().parseFromString(xml2, "text/xml");
+      const els = doc.querySelectorAll("item, entry");
+      const out = [];
+      let idx = 0;
+      els.forEach(el => {
+        if (idx++ >= 50) return;
+        const title = strip(cdata(el.querySelector("title")?.textContent));
+        const desc  = strip(cdata(el.querySelector("description")?.textContent || el.querySelector("content")?.textContent || "")).slice(0,350);
+        const link  = (el.querySelector("link")?.textContent?.trim() || el.querySelector("link")?.getAttribute("href") || "").trim();
+        const rawDate = el.querySelector("pubDate,published,updated")?.textContent;
+        const date = rawDate ? new Date(rawDate) : new Date();
+        if (!title || title.length < 5) return;
+        if (src.tag) { const t=(title+" "+desc).toLowerCase(); if(NATIONAL_KW.test(t)) return; }
+        if (src.maxAgeDays) { if (Date.now()-date.getTime() > src.maxAgeDays*86400000) return; }
+        out.push({ title, description:desc, link, date, cat: src.tag?"local":"pending",
+          sourceName:src.name, sourceCountry:src.country, tag:src.tag||null });
+      });
+      return out;
+    } catch { return []; }
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -2890,12 +2937,20 @@ async function fetchArticleText(url) {
     if (url.includes("kommersant.ru")) {
       jinaHeaders["X-Target-Selector"] = ".article_text_wrapper, .article__text, [itemprop=articleBody]";
       jinaHeaders["X-Remove-Selector"] = ".article_sidebar, .aside, .related, footer, nav, .tags, .subscribe";
+    } else if (url.includes("forbes.ru")) {
+      jinaHeaders["X-Target-Selector"] = ".article__body, .article-body, [class*=article__content], .content__text";
+      jinaHeaders["X-Remove-Selector"] = ".tags, .related, .aside, footer, nav, .subscribe, .social";
+    } else if (url.includes("banki.ru")) {
+      jinaHeaders["X-Target-Selector"] = ".article__text, .news-text, [class*=article-body], .text-content";
+      jinaHeaders["X-Remove-Selector"] = ".aside, .related, footer, nav, .tags";
     } else if (url.includes("reuters.com")) {
       jinaHeaders["X-Target-Selector"] = "[class*=article-body], [class*=ArticleBody], .StandardArticleBody_body";
     } else if (url.includes("bbc.")) {
       jinaHeaders["X-Target-Selector"] = "[class*=article], article";
     } else if (url.includes("aljazeera.com")) {
       jinaHeaders["X-Target-Selector"] = ".wysiwyg, .article-p-wrapper, [class*=ArticleBody]";
+    } else if (url.includes("mosday.ru")) {
+      jinaHeaders["X-Target-Selector"] = ".news-text, .article-text, article";
     }
     const res = await fetch("https://r.jina.ai/" + url, {
       headers: jinaHeaders,
@@ -3050,17 +3105,28 @@ async function generateAISummary(card, bodyEl, cardId) {
     : "in English";
 
   const srcCount = (card.raw||[]).length;
-  const multiNote = srcCount > 1 ? "\n- Если источники расходятся — упомяни одной фразой в тексте" : "";
+  const sources  = (card.sources||[]).join(", ");
+  const multiNote = srcCount > 1 ? "\n- Если источники расходятся — упомяни это одной фразой" : "";
+
+  // Serious outlets get longer summaries
+  const SERIOUS = ["Al Jazeera","BBC","Politico","Коммерсант","Forbes"];
+  const isSerious = (card.sources||[]).some(s => SERIOUS.some(o => s.includes(o)));
+
+  const lengthReq = isSerious
+    ? "- 5-7 предложений, 130-180 слов — развёрнутый аналитический разбор"
+    : "- 4-6 предложений, 100-140 слов";
+
   const prompt = "Напиши резюме новости " + langInstruction + ".\n\n"
+    + "ИСТОЧНИК: " + sources + "\n\n"
     + "ТРЕБОВАНИЯ:\n"
-    + "- Ровно 3-5 предложений, 80-120 слов — не больше, не меньше\n"
-    + "- Конкретные факты: цифры, имена, даты, места\n"
+    + lengthReq + "\n"
+    + "- Конкретные факты: цифры, имена, даты, места — они обязательны\n"
     + "- НЕ начинай с 'Согласно', 'По данным', 'Сообщается', 'В статье'\n"
-    + "- Не пересказывай дословно — авторская выжимка\n"
-    + "- Одинаковый объём независимо от длины источника"
+    + "- Объясни ПОЧЕМУ это важно и какие могут быть последствия (1-2 предложения)\n"
+    + "- Не пересказывай дословно — авторская выжимка с контекстом"
     + multiNote + "\n\n"
-    + (fromFull ? "Текст (выдели главное):\n" : "RSS-описание:\n")
-    + articleContent.slice(0, 5000);
+    + (fromFull ? "Полный текст статьи:\n" : "RSS-описание новости:\n")
+    + articleContent.slice(0, 6000);
 
   const groqKey = state.groqKey;
 
@@ -3068,9 +3134,13 @@ async function generateAISummary(card, bodyEl, cardId) {
     if (groqKey) {
       const d = await groqFetch({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 350,
-        messages: [{ role: "user", content: prompt }]
-      }, groqKey, 20000);
+        max_tokens: isSerious ? 500 : 400,
+        temperature: 0.4,
+        messages: [
+          { role: "system", content: "Ты опытный редактор новостного агрегатора. Пишешь чёткие, информативные резюме с контекстом и анализом. Всегда на русском языке." },
+          { role: "user",   content: prompt }
+        ]
+      }, groqKey, 22000);
       const text = d?.choices?.[0]?.message?.content?.trim();
       if (text) {
         modalCache[cardId] = {
@@ -3181,47 +3251,129 @@ async function askCardAI(cardId) {
 async function shareCardScreenshot(cardId) {
   const cardEl = document.getElementById("card-" + cardId);
   if (!cardEl) return;
-
   const btn = cardEl.querySelector(".share-screenshot-btn");
   if (btn) { btn.classList.add("loading"); btn.innerHTML = "⏳ Создаём..."; }
 
+  const styleEl = document.createElement("style");
+  styleEl.id = "__ss_style";
+  let brand = null;
+
   try {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    const bgColor = isDark ? "#111009" : "#FFFFFF";
+    const cs = getComputedStyle(document.documentElement);
+    const g = v => cs.getPropertyValue(v).trim();
+
+    // Resolve all CSS vars to real values — html2canvas can't read var()
+    const surface = g("--surface") || (isDark ? "#111009" : "#ffffff");
+    const bg      = g("--bg")      || (isDark ? "#0d0d08" : "#f7f7f5");
+    const text    = g("--text")    || (isDark ? "#f0efe8" : "#111111");
+    const text2   = g("--text2")   || (isDark ? "#a8a89a" : "#555550");
+    const text3   = g("--text3")   || (isDark ? "#666658" : "#99998e");
+    const accent  = g("--accent")  || "#b8960c";
+    const accent2 = g("--accent2") || "#8b6f00";
+    const accentBg= g("--accent-bg")|| "#f8f2dc";
+    const border  = g("--border")  || (isDark ? "#2a2a1e" : "#e2e2de");
+    const border2 = g("--border2") || (isDark ? "#3a3a2e" : "#cacac4");
+    const mono    = g("--mono")    || "monospace";
+    const red     = g("--red")     || "#c0392b";
+
+    // Inject resolved vars as real CSS properties scoped to the card
+    styleEl.textContent = `
+      #card-${cardId}, #card-${cardId} * {
+        --bg:${bg}; --bg2:${isDark?"#161610":"#efefed"};
+        --surface:${surface}; --border:${border}; --border2:${border2};
+        --text:${text}; --text2:${text2}; --text3:${text3};
+        --accent:${accent}; --accent2:${accent2}; --accent-bg:${accentBg};
+        --mono:${mono}; --red:${red}; --green:#27ae60;
+        --shadow-card:0 1px 4px rgba(0,0,0,.10);
+      }`;
+    document.head.appendChild(styleEl);
+
+    // Expand card so full content is captured
+    const origH = cardEl.style.height;
+    const origO = cardEl.style.overflow;
+    cardEl.style.height = "auto";
+    cardEl.style.overflow = "visible";
+
+    // Hide action buttons from screenshot
+    const hideEls = cardEl.querySelectorAll(
+      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row"
+    );
+    hideEls.forEach(el => { el.dataset.ssHide = el.style.display; el.style.display = "none"; });
+
+    // Add DOM branding element (reliable, no canvas font issues)
+    brand = document.createElement("div");
+    brand.id = "__ss_brand";
+    brand.style.cssText = [
+      "margin-top:12px", "padding:8px 0 4px",
+      `border-top:1px solid ${border}`,
+      "display:flex", "align-items:center", "justify-content:flex-end", "gap:3px",
+      "opacity:0.55"
+    ].join(";");
+    brand.innerHTML =
+      `<span style="font-size:10px;font-weight:800;letter-spacing:.18em;` +
+      `color:${text};font-family:-apple-system,sans-serif;text-transform:uppercase">MMSAWW</span>` +
+      `<span style="font-size:10px;font-weight:400;letter-spacing:.12em;` +
+      `color:${text3};font-family:-apple-system,sans-serif;text-transform:uppercase"> NEWS</span>`;
+    cardEl.appendChild(brand);
+
+    // Wait one frame so injected styles paint
+    await new Promise(r => setTimeout(r, 80));
 
     const canvas = await html2canvas(cardEl, {
-      backgroundColor: bgColor,
-      scale: window.devicePixelRatio * 2,
+      backgroundColor: surface,
+      scale: Math.min(window.devicePixelRatio * 2, 4),
       useCORS: true,
       logging: false,
+      allowTaint: true,
+      scrollX: 0,
       scrollY: -window.scrollY,
     });
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
+    // Restore DOM
+    brand.remove(); brand = null;
+    styleEl.remove();
+    cardEl.style.height = origH;
+    cardEl.style.overflow = origO;
+    hideEls.forEach(el => { el.style.display = el.dataset.ssHide || ""; delete el.dataset.ssHide; });
 
-      // Try Web Share API (mobile + Chrome desktop)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
-          return;
-        } catch(e) { /* cancelled or unsupported */ }
-      }
-
-      // Fallback: download PNG
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "mmsaww-news.png"; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-      if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
-    }, "image/png");
+    // Share (mobile) or download (desktop)
+    const isMobile = !!(navigator.share && navigator.canShare);
+    if (isMobile) {
+      await new Promise(resolve => {
+        canvas.toBlob(async blob => {
+          if (!blob) { resolve(); return; }
+          const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file] }); } catch {}
+          } else { _dlCanvas(canvas); }
+          resolve();
+        }, "image/png");
+      });
+    } else {
+      _dlCanvas(canvas);
+    }
 
   } catch(e) {
-    console.error("Screenshot error:", e);
+    console.error("Screenshot:", e);
+  } finally {
+    // Always clean up
+    brand?.remove();
+    document.getElementById("__ss_style")?.remove();
+    const el = document.getElementById("card-" + cardId);
+    el?.querySelectorAll("[data-ss-hide]").forEach(e => {
+      e.style.display = e.dataset.ssHide || ""; delete e.dataset.ssHide;
+    });
     if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
   }
+}
+
+function _dlCanvas(canvas) {
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = "mmsaww-news.png";
+  a.style.display = "none";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 </script>
