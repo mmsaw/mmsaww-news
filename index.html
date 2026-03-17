@@ -927,6 +927,20 @@ const SOURCES = [
   // ── Финансовые ────────────────────────────────────────────────────────────
   {
     urls: [
+      // Jina scrapes Frank Media directly
+      "JINA:https://frankmedia.ru/",
+      "JINA:https://frankmedia.ru/news",
+      // RSS + Telegram fallbacks
+      "https://frankmedia.ru/feed",
+      "https://frankrg.com/feed",
+      "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      "https://news.google.com/rss/search?q=site:frankmedia.ru&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"Frank Media", country:"ru"
+  },
+  {
+    urls: [
       // Jina scrapes Banki.ru news feed directly
       "JINA:https://www.banki.ru/news/lenta/",
       // RSS fallbacks
@@ -970,11 +984,15 @@ const SOURCES = [
   // ── Локальные ─────────────────────────────────────────────────────────────
   {
     urls: [
+      // Jina scrapes 76.ru directly
+      "JINA:https://76.ru/",
+      "JINA:https://76.ru/text/gorod/",
+      // RSS + aggregator fallbacks
+      "https://76.ru/rss/",
+      "https://76.ru/rss/all",
       "https://news.yandex.ru/yaroslavl.rss",
       "https://yarnovosti.ru/rss/",
-      "https://yarnovosti.ru/feed/",
       "https://news.google.com/rss/search?q=Ярославль+новости&hl=ru&gl=RU&ceid=RU:ru",
-      "https://76.ru/rss/",
     ],
     name:"Ярославль", country:"ru", tag:"Ярославль"
   },
