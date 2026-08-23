@@ -178,10 +178,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
   padding: 3px 10px; background: none;
   border: 1px solid var(--border); border-radius: 20px;
   cursor: pointer; font-family: var(--ui); font-size: 11px;
-  color: var(--text2); white-space: nowrap; transition: all .15s;
+  color: var(--text2); white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
   flex-shrink: 0; line-height: 1.5;
 }
 .fbtn:hover { border-color: var(--text3); color: var(--text); }
+.fbtn:active { transform: scale(.94); }
 .fbtn.on {
   background: var(--text); color: var(--surface);
   border-color: var(--text); font-weight: 600;
@@ -283,9 +285,26 @@ span.srcfbtn.err.on {
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-bottom:4px;align-items:start}
 
 /* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;animation:rise .3s ease both;box-shadow:var(--shadow-card);height:200px;display:flex;flex-direction:column;overflow:hidden}
-@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px);border-color:var(--border2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .2s cubic-bezier(.2,.8,.2,1),transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s;position:relative;animation:rise .4s cubic-bezier(.16,1,.3,1) both;box-shadow:var(--shadow-card);height:200px;display:flex;flex-direction:column;overflow:hidden}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+/* Staggered cascade — first ~10 cards in a grid fade in a beat apart instead
+   of all at once. Cards beyond that share the same (small) final delay so a
+   long list doesn't take ages to finish appearing. */
+.grid .card:nth-child(1){animation-delay:0ms}
+.grid .card:nth-child(2){animation-delay:35ms}
+.grid .card:nth-child(3){animation-delay:70ms}
+.grid .card:nth-child(4){animation-delay:105ms}
+.grid .card:nth-child(5){animation-delay:140ms}
+.grid .card:nth-child(6){animation-delay:175ms}
+.grid .card:nth-child(7){animation-delay:210ms}
+.grid .card:nth-child(8){animation-delay:245ms}
+.grid .card:nth-child(9){animation-delay:280ms}
+.grid .card:nth-child(n+10){animation-delay:300ms}
+.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px);border-color:var(--border2)}
+.card:active{transform:scale(.985);transition:transform .1s}
+.card.swipe-read{box-shadow:inset 5px 0 0 var(--green)}
+.card.swipe-save{box-shadow:inset -5px 0 0 var(--accent)}
+#ptr-indicator{position:fixed;top:10px;left:calc(50% - 17px);width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:16px;font-weight:700;opacity:0;z-index:999;pointer-events:none;box-shadow:var(--shadow)}
 [data-theme=dark] .card:hover{box-shadow:none;transform:none;border-color:var(--accent)}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,var(--accent));border-radius:var(--r) 0 0 var(--r);opacity:0;transition:opacity .2s}
 .card:hover::before{opacity:1}
@@ -302,7 +321,14 @@ span.srcfbtn.err.on {
 [data-theme=dark] .csub.ru-eco   {background:rgba(82,190,128,.1);color:#52BE80;border-color:rgba(82,190,128,.3)}
 [data-theme=dark] .csub.world-eco{background:rgba(244,208,63,.1);color:#D4AC0D;border-color:rgba(244,208,63,.3)}
 .csynth{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent)}
+.centity{font-family:var(--ui);font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.centity:hover{background:var(--accent-bg);color:var(--accent2);border-color:var(--accent)}
+.entity-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:14px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);font-family:var(--ui);font-size:13px;color:var(--accent2)}
+.entity-banner-label b{color:var(--accent2)}
+.entity-banner-close{background:none;border:1px solid var(--accent);border-radius:14px;padding:4px 10px;font-size:11px;color:var(--accent2);cursor:pointer;transition:all .15s}
+.entity-banner-close:hover{background:var(--accent);color:#fff}
 .ctime{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0}
+.csaved{color:var(--accent);margin-right:5px;font-size:11px}
 .ctitle{font-family:var(--head);font-size:15px;font-weight:700;line-height:1.35;color:var(--text);margin-bottom:8px;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 
 .persp{border-top:1px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -321,10 +347,20 @@ span.srcfbtn.err.on {
 .chip{font-family:var(--mono);font-size:9px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
 
 /* SKELETON */
-.skel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;animation:shim 1.4s ease-in-out infinite}
-@keyframes shim{0%,100%{opacity:.5}50%{opacity:1}}
-.sl{height:9px;background:var(--bg2);border-radius:4px;margin-bottom:7px}
-.sl-t{height:15px;background:var(--bg2);border-radius:4px;margin-bottom:5px}
+.skel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;height:200px;display:flex;flex-direction:column;overflow:hidden}
+.sl,.sl-t{position:relative;overflow:hidden;background:var(--bg2);border-radius:4px}
+.sl{height:9px;margin-bottom:7px}
+.sl-t{height:15px;margin-bottom:5px}
+/* Directional shimmer sweep (like native iOS/app loading states) instead of a flat pulse */
+.sl::after,.sl-t::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  animation:shimsweep 1.6s ease-in-out infinite;
+}
+[data-theme=dark] .sl::after,[data-theme=dark] .sl-t::after{
+  background:linear-gradient(90deg,transparent,rgba(232,213,163,.12),transparent);
+}
+@keyframes shimsweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
 /* MSG */
 .empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:24px;text-align:center}
@@ -764,6 +800,21 @@ span.srcfbtn.err.on {
 .share-screenshot-btn:hover{border-color:var(--accent);color:var(--accent)}
 .share-screenshot-btn.loading{opacity:.5;cursor:not-allowed}
 .fstatus{font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:6px;white-space:nowrap;animation:blink 1.5s infinite}
+
+/* Accessibility floor: visible keyboard focus + respect motion preference */
+button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .skel .sl::after, .skel .sl-t::after, .siri-dots span,
+  #ptr-indicator, .card-new-badge {
+    animation: none !important;
+  }
+  .card, .fbtn, .refresh-hdr-btn, .rfbtn {
+    transition: none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -832,6 +883,10 @@ span.srcfbtn.err.on {
       <button class="fbtn on" id="tbtn-today" onclick="setTimeFilter('today')">Сегодня</button>
       <button class="fbtn"    id="tbtn-prev"  onclick="setTimeFilter('prev')">Вчера и ранее</button>
       <button class="fbtn"    id="tbtn-all"   onclick="setTimeFilter('all')">Все новости</button>
+    </div>
+    <div class="fdivider"></div>
+    <div class="fgroup">
+      <button class="fbtn" id="savedbtn" onclick="toggleSavedFilter()">★ Сохранённые</button>
     </div>
   </div>
 
@@ -1033,10 +1088,31 @@ const SOURCES = [
   {
     urls: [
       "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=when:2d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
-      "https://www.politico.com/rss/politics08.xml",
     ],
     name:"Politico", country:"west", maxAgeDays:2
+  },
+  {
+    urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=when:2d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
+    ],
+    name:"Reuters", country:"west", maxAgeDays:2
+  },
+  {
+    urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=when:2d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
+    ],
+    name:"AP", country:"west", maxAgeDays:2
+  },
+  {
+    urls: [
+      "https://habr.com/ru/rss/all/all/",
+      "https://news.google.com/rss/search?q=when:1d+allinurl:habr.com&hl=ru&gl=RU&ceid=RU:ru",
+    ],
+    name:"Habr", country:"ru", forceCat:"tech"
   },
 
   // ── Локальные ─────────────────────────────────────────────────────────────
@@ -1144,6 +1220,8 @@ let state = {
   timeFilter: "today",   // "today" | "all"
   srcFilter: new Set(),  // empty = show all; non-empty = show only these sources
   pressFilt: "all",       // "all" | "ru" | "west"
+  entityFilter: null,     // set when the user taps a 🔖 topic chip — shows cross-time timeline
+  savedOnly: false,       // "★ Сохранённые" quick filter
   lang: "ru",            // "ru" | "en"
   srcStatus: {},
   srcError: {},          // name → last error reason (for tooltip)
@@ -1213,15 +1291,18 @@ function categorizeFallback(title, desc) {
 
 // ── AI BATCH CATEGORIZER ─────────────────────────────────────────────────────
 // RULE: "local" is NOT in AI output — local category is 100% source-gated
-const CAT_PROMPT = `Ты редактор новостного агрегатора. Классифицируй каждую новость по одной из четырёх категорий:
-
+const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи:
+1. Категорию — одну из четырёх:
 "geopolitics"  — ВСЁ военное и политическое: Украина, Иран, Израиль, Китай, США, НАТО, ООН, санкции, войны, конфликты, дипломатия, выборы мировых лидеров.
 "finance"      — экономика и деньги: биржи, курсы валют, ЦБ, ставки, нефть/газ как товар, отчёты компаний, крипто, сделки M&A, тарифы, ВВП, инфляция.
 "tech"         — технологии: ИИ, ПО, железо, стартапы, кибербезопасность, космос, электромобили, биотех.
 "lifestyle"    — всё остальное: спорт, культура, криминал, здоровье, общество, люди, погода, ДТП, ЖКХ.
 
+2. Тему (ent) — 1-3 слова, главный субъект новости для группировки похожих новостей: имя человека, страна, компания, событие.
+Примеры: "Иран", "ФРС", "Трамп", "Nvidia", "выборы в Молдове". Если явного субъекта нет — пустая строка.
+
 Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
-[{"i":0,"cat":"finance"},{"i":1,"cat":"lifestyle"},...]`;
+[{"i":0,"cat":"finance","ent":"ФРС"},{"i":1,"cat":"lifestyle","ent":""},...]`;
 
 // Classify a batch of headlines via Groq (fast + cheap gpt-oss-20b).
 // Uses the same groqKey already required for the daily summary — no extra
@@ -1249,10 +1330,13 @@ async function classifyBatchGroq(items, key) {
 async function categorizeWithAI(rawItems, groqKey) {
   // ── STEP 1: local items come ONLY from tagged sources, never from AI ──────
   const localItems    = rawItems.filter(it => it.tag);    // Ярославль + Москва only
-  const nonLocalItems = rawItems.filter(it => !it.tag);   // everything else → AI
+  // Sources with forceCat (e.g. Habr → tech) are already classified — skip AI for them too
+  const preClassified = rawItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
+  const nonLocalItems = rawItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
 
   const BATCH = 30;
   const catMap = {};
+  const entMap = {};
 
   // Batches are independent requests — fire them all in parallel instead of
   // awaiting one at a time. With ~100 items / batch 30 = ~4 batches, this
@@ -1266,7 +1350,12 @@ async function categorizeWithAI(rawItems, groqKey) {
   await Promise.all(batches.map(async ({ offset, items }) => {
     const result = await classifyBatchGroq(items, groqKey);
     if (result) {
-      result.forEach(r => { if (typeof r.i === "number" && r.cat) catMap[offset + r.i] = r.cat; });
+      result.forEach(r => {
+        if (typeof r.i === "number" && r.cat) {
+          catMap[offset + r.i] = r.cat;
+          if (r.ent && typeof r.ent === "string" && r.ent.trim()) entMap[offset + r.i] = r.ent.trim();
+        }
+      });
     }
     // Fill any gaps (missing indices, or Groq unavailable) with regex fallback
     items.forEach((it, bi) => {
@@ -1279,11 +1368,11 @@ async function categorizeWithAI(rawItems, groqKey) {
     const cat = catMap[idx];
     // Hard block: if AI somehow returns "local" — discard entirely
     if (!cat || cat === "local") return null;
-    return { ...it, cat };
+    return { ...it, cat, entity: entMap[idx] || null };
   }).filter(Boolean);
 
-  // ── STEP 2: local items are returned as-is, never re-classified ───────────
-  return [...localItems, ...classified];
+  // ── STEP 2: local + pre-classified items are returned as-is, never re-run ─
+  return [...localItems, ...preClassified, ...classified];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1387,7 +1476,7 @@ function parseJinaMarkdown(text, src, targetUrl) {
     const date = extractDateFromUrl(link) || new Date(Date.now() - out.length * 16 * 60000);
     out.push({
       title: title, description: title, link, date,
-      cat: src.cat || "pending",
+      cat: src.forceCat || "pending",
       sourceName: src.name, sourceCountry: src.country,
       tag: src.tag || null, isTg: false
     });
@@ -1417,7 +1506,7 @@ function parseRSSXML(xml, src) {
       const t = (title + " " + desc).toLowerCase();
       if (NATIONAL_KW.test(t)) return;
     }
-    const cat = src.tag ? "local" : "pending";
+    const cat = src.tag ? "local" : (src.forceCat || "pending");
     if (src.maxAgeDays) {
       const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
       if (Date.now() - date.getTime() > maxMs) return;
@@ -1510,6 +1599,61 @@ function groupArticles(items) {
   return groups;
 }
 
+// Second-pass dedup: Jaccard (above) only catches near-identical WORDING.
+// It misses paraphrased duplicates — e.g. "Трамп ввёл пошлины" vs "США повысили
+// тарифы" describe the same event with zero shared words. This asks Groq to
+// look at the Jaccard-grouped results (one headline per group) and merge any
+// that describe the SAME real event, worded differently. Fails safe: any
+// error, timeout, or missing/invalid response just returns the original
+// Jaccard grouping untouched — this is a pure enhancement, never a regression.
+async function semanticMergeGroups(groups, groqKey) {
+  if (!groqKey || groups.length < 2 || groups.length > 60) return groups;
+
+  const reps = groups.map((g, i) => `${i}. ${(g[0].title_ru || g[0].title || "").slice(0,140)}`).join("\n");
+  const prompt = `Вот заголовки новостей одного раздела, каждый уже без явных дублей по словам.
+Некоторые всё ещё могут описывать ОДНО И ТО ЖЕ событие, но разными словами (разный источник, разная формулировка).
+
+Верни JSON-массив групп индексов: [[0,2],[1],[3,4,5]]
+Каждый индекс встречается РОВНО один раз. Объединяй ТОЛЬКО если это точно один и тот же информационный повод —
+не объединяй просто похожие темы или продолжающуюся историю с разными эпизодами.
+
+Заголовки:
+${reps}`;
+
+  try {
+    const d = await groqFetch({
+      model: "openai/gpt-oss-20b",
+      max_tokens: 1500,
+      reasoning_effort: "low",
+      messages: [{ role: "user", content: prompt }]
+    }, groqKey, 15000);
+    if (!d) return groups;
+    const text = d.choices?.[0]?.message?.content || "";
+    const m = text.match(/\[[\s\S]*?\]/);
+    if (!m) return groups;
+    const merged = JSON.parse(m[0]);
+    if (!Array.isArray(merged)) return groups;
+
+    const seen = new Set();
+    const result = [];
+    for (const idxArr of merged) {
+      if (!Array.isArray(idxArr)) continue;
+      const combined = [];
+      for (const gi of idxArr) {
+        if (typeof gi !== "number" || gi < 0 || gi >= groups.length || seen.has(gi)) continue;
+        seen.add(gi);
+        combined.push(...groups[gi]);
+      }
+      if (combined.length) result.push(combined);
+    }
+    // Any index the model missed → keep as its own standalone group (fail-safe)
+    groups.forEach((g, i) => { if (!seen.has(i)) result.push(g); });
+    return result.length ? result : groups;
+  } catch (e) {
+    return groups; // any failure → original Jaccard grouping stands
+  }
+}
+
 function makeCard(group) {
   const p = group[0];
   const sources = [...new Set(group.map(g=>g.sourceName))];
@@ -1527,7 +1671,7 @@ function makeCard(group) {
     title_en: null,   // filled lazily when switching to EN
     summary_en: null,
     needsTranslation,
-    cat: p.cat, tag: p.tag, sources, link: p.link, date: p.date,
+    cat: p.cat, tag: p.tag, entity: p.entity || null, sources, link: p.link, date: p.date,
     time: formatTime(p.date),
     perspectives: (ru.length && west.length) ? {
       russian: ru[0].description?.slice(0,160) || null,
@@ -1639,6 +1783,28 @@ function getReadSet() {
   catch(e) { return new Set(); }
 }
 
+// ── Haptics — small, tasteful, native-feeling touches on meaningful actions ──
+function haptic(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms || 10); } catch(e) {}
+}
+
+// ── Saved/bookmarked articles (swipe-left) — separate from read-tracking ────
+const SAVED_KEY = "mmsaww_saved_v1";
+function getSavedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(SAVED_KEY) || "[]")); }
+  catch(e) { return new Set(); }
+}
+function toggleSaved(link) {
+  if (!link) return;
+  const s = getSavedSet();
+  if (s.has(link)) s.delete(link); else s.add(link);
+  const arr = [...s].slice(-300); // cap growth
+  try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+function isSaved(link) {
+  return link ? getSavedSet().has(link) : false;
+}
+
 function markCardRead(link) {
   if (!link) return;
   const s = getReadSet();
@@ -1729,23 +1895,25 @@ async function buildCardsFromItems(items) {
       categorized = await categorizeWithAI(dedupedItems, state.groqKey);
     } catch(e) {
       const localFallback    = dedupedItems.filter(it => it.tag);
-      const nonLocalFallback = dedupedItems.filter(it => !it.tag);
+      const preClassifiedFallback = dedupedItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
+      const nonLocalFallback = dedupedItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
       const classifiedFallback = nonLocalFallback.map(it => {
         const cat = categorizeFallback(it.title, it.description);
         return cat ? { ...it, cat } : null;
       }).filter(Boolean);
-      categorized = [...localFallback, ...classifiedFallback];
+      categorized = [...localFallback, ...preClassifiedFallback, ...classifiedFallback];
     }
     state.classifying = false;
     renderStatusBar();
   } else {
     const localFallback    = dedupedItems.filter(it => it.tag);
-    const nonLocalFallback = dedupedItems.filter(it => !it.tag);
+    const preClassifiedFallback = dedupedItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
+    const nonLocalFallback = dedupedItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
     const classifiedFallback = nonLocalFallback.map(it => {
       const cat = categorizeFallback(it.title, it.description);
       return cat ? { ...it, cat } : null;
     }).filter(Boolean);
-    categorized = [...localFallback, ...classifiedFallback];
+    categorized = [...localFallback, ...preClassifiedFallback, ...classifiedFallback];
   }
 
   const byCat = {};
@@ -1753,10 +1921,16 @@ async function buildCardsFromItems(items) {
   categorized.forEach(it => { if (byCat[it.cat]) byCat[it.cat].push(it); });
   Object.values(byCat).forEach(arr => arr.sort((a,b)=>b.date-a.date));
 
-  const raw = [];
-  Object.entries(byCat).forEach(([,catItems]) => {
-    groupArticles(catItems).slice(0,20).forEach(g => raw.push(makeCard(g)));
-  });
+  // Jaccard groups per category, then an optional semantic merge pass on top —
+  // both run per-category in parallel so this doesn't add serial wait time.
+  const groupedPerCat = await Promise.all(
+    Object.entries(byCat).map(async ([, catItems]) => {
+      let groups = groupArticles(catItems);
+      if (state.groqKey) groups = await semanticMergeGroups(groups, state.groqKey);
+      return groups.slice(0,20).map(g => makeCard(g));
+    })
+  );
+  const raw = groupedPerCat.flat();
   raw.sort((a,b) => b.date-a.date);
   return raw;
 }
@@ -2165,6 +2339,9 @@ function visibleCards(allCards) {
   if (state.srcFilter.size > 0) {
     cards = cards.filter(c => c.sources && c.sources.some(s => state.srcFilter.has(s)));
   }
+  if (state.savedOnly) {
+    cards = cards.filter(c => isSaved(c.link));
+  }
   if (state.pressFilt === "ru") {
     const ruSet = new Set(SOURCES.filter(s => s.country === "ru").map(s => s.name));
     cards = cards.filter(c => (c.sources || []).some(s => ruSet.has(s)));
@@ -2174,7 +2351,16 @@ function visibleCards(allCards) {
   }
   return cards;
 }
+function toggleSavedFilter() {
+  haptic(6);
+  state.savedOnly = !state.savedOnly;
+  const btn = document.getElementById("savedbtn");
+  if (btn) btn.classList.toggle("on", state.savedOnly);
+  renderContent();
+}
+
 function setPressFilt(val) {
+  haptic(6);
   state.pressFilt = val;
   ["all","ru","west"].forEach(v => {
     const b = document.getElementById("pfbtn-" + v);
@@ -2184,6 +2370,7 @@ function setPressFilt(val) {
 }
 
 function setTimeFilter(val) {
+  haptic(6);
   state.timeFilter = val;
   document.getElementById("tbtn-today").classList.toggle("on", val==="today");
   document.getElementById("tbtn-prev").classList.toggle("on", val==="prev");
@@ -2199,8 +2386,43 @@ function clearSrcFilter() {
   state.srcFilter.clear(); renderStatusBar(); renderContent();
 }
 
+function filterByEntity(entity) {
+  state.entityFilter = entity;
+  haptic(10);
+  renderContent();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function clearEntityFilter() {
+  state.entityFilter = null;
+  renderContent();
+}
+
+function renderEntityTimeline() {
+  const el = document.getElementById("content");
+  const entity = state.entityFilter;
+  // Search the FULL cache (any time, any category) — this is a cross-cutting
+  // view by design, independent of the normal time/press/source filters.
+  const matches = state.cards
+    .filter(c => c.entity === entity)
+    .sort((a,b) => b.date - a.date);
+
+  const banner = `<div class="entity-banner">
+    <span class="entity-banner-label">🔖 Тема: <b>${escHtml(entity)}</b></span>
+    <button class="entity-banner-close" onclick="clearEntityFilter()">✕ Закрыть</button>
+  </div>`;
+
+  if (!matches.length) {
+    el.innerHTML = banner + `<div class="empty">Больше нет новостей по этой теме в кэше</div>`;
+    return;
+  }
+  el.innerHTML = banner + `<div class="grid">${matches.map(c => cardHTML(c)).join("")}</div>`;
+}
+
 function renderContent() {
   const el = document.getElementById("content");
+
+  if (state.entityFilter) { renderEntityTimeline(); return; }
 
   if (state.loading && state.cards.length===0) {
     el.innerHTML = `<div class="grid">${[1,2,3,4,5,6].map(()=>skelHTML()).join("")}</div>`;
@@ -2291,13 +2513,14 @@ function skelHTML() {
 
 // ── Google Translate proxy for western sources ───────────────
 const WESTERN_DOMAINS = ["bbc.com","bbc.co.uk","wsj.com","ft.com","aljazeera.com",
-  "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com"];
+  "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com",
+  "politico.com","politico.eu","forbes.com","apnews.com"];
 
 function isEnglishSource(sourceName, link) {
   const src = (sourceName||"").toLowerCase();
   const url = (link||"").toLowerCase();
   return WESTERN_DOMAINS.some(d => url.includes(d)) ||
-    ["wsj","bbc","ft","al jazeera","bloomberg","guardian","reuters"].some(n => src.includes(n));
+    ["wsj","bbc","ft","al jazeera","bloomberg","guardian","reuters","politico","forbes us"].some(n => src.includes(n));
 }
 
 function translatedLink(link, sourceName) {
@@ -2321,6 +2544,8 @@ function cardHTML(item) {
   const srcCnt    = item.sources?.length>1 ? `<span class="csub">${item.sources.length} ист.</span>` : "";
   const tagBadge  = scM ? `<span class="csub ${scM.cls}">${scM.label}</span>` : (item.tag ? `<span class="csub">${item.tag}</span>` : "");
   const synthBadge = item.synthesized ? `<span class="csynth">⟳ синтез</span>` : "";
+  const entityChip = item.entity ? `<span class="centity" onclick="event.stopPropagation();filterByEntity('${escHtml(item.entity).replace(/'/g,"&#39;")}')">🔖 ${escHtml(item.entity)}</span>` : "";
+  const savedStar = isSaved(item.link) ? `<span class="csaved" title="Сохранено">★</span>` : "";
   const catBadge  = `<span class="cbadge" style="background:${cat.color}1a;color:${cat.color};border:1px solid ${cat.color}30">${cat.label}</span>`;
 
   let perspHTML = "";
@@ -2336,8 +2561,8 @@ function cardHTML(item) {
 
   return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
     <div class="ch">
-      <div class="ctags">${catBadge}${tagBadge}${synthBadge}${srcCnt}${transLabel}</div>
-      <span class="ctime">${item.time}</span>
+      <div class="ctags">${catBadge}${tagBadge}${entityChip}${synthBadge}${srcCnt}${transLabel}</div>
+      <span class="ctime">${savedStar}${item.time}</span>
     </div>
     <h3 class="ctitle">${escHtml(dTitle)}${item.isNew ? '<span class="card-new-badge">NEW</span>' : ""}</h3>
     ${perspHTML}
@@ -2394,6 +2619,7 @@ function decodeEntities(str) {
 // ═══════════════════════════════════════════════════════════
 
 function setFilter(id) {
+  haptic(6);
   const prev = state.filter;
   state.filter = id;
   renderHeader();
@@ -2947,6 +3173,124 @@ loadAll();
 // Auto-refresh removed — manual only via refresh button
 
 // ═══════════════════════════════════════════════════════════
+// SWIPE GESTURES on cards — swipe right = mark read & dismiss,
+// swipe left = save/bookmark. Delegated on #content since cards
+// are fully re-rendered (innerHTML) on every update — a listener
+// on the stable parent avoids re-attaching after every render.
+// ═══════════════════════════════════════════════════════════
+(function setupCardSwipe() {
+  const container = document.getElementById("content");
+  if (!container) return;
+  let startX = 0, startY = 0, curX = 0, activeCard = null, swiping = false;
+
+  container.addEventListener("touchstart", e => {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    if (e.target.closest("a,button,input,.card-expand,.centity,.card-ai-ask")) return;
+    activeCard = card;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    curX = startX;
+    swiping = false;
+  }, { passive: true });
+
+  container.addEventListener("touchmove", e => {
+    if (!activeCard) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (!swiping) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) swiping = true;
+      else if (Math.abs(dy) > 10) { activeCard = null; return; } // vertical scroll — let it through
+    }
+    if (!swiping) return;
+    curX = t.clientX;
+    const clamped = Math.max(-120, Math.min(120, dx));
+    activeCard.style.transition = "none";
+    activeCard.style.transform = `translateX(${clamped}px)`;
+    activeCard.classList.toggle("swipe-read", clamped > 40);
+    activeCard.classList.toggle("swipe-save", clamped < -40);
+  }, { passive: true });
+
+  container.addEventListener("touchend", () => {
+    if (!activeCard || !swiping) { activeCard = null; return; }
+    const dx = curX - startX;
+    const card = activeCard;
+    const cardId = card.id.replace("card-", "");
+    const item = state.cards.find(c => c.id === cardId);
+    card.style.transition = "transform .25s ease, opacity .25s ease";
+
+    if (dx > 70) {
+      // Swipe right → mark read, dismiss with a slide-out
+      haptic(15);
+      card.style.transform = "translateX(140%)";
+      card.style.opacity = "0";
+      if (item) markCardRead(item.link);
+      setTimeout(() => renderContent(), 220);
+    } else if (dx < -70) {
+      // Swipe left → toggle saved/bookmarked
+      haptic(15);
+      if (item) toggleSaved(item.link);
+      card.style.transform = "translateX(0)";
+      card.classList.remove("swipe-read", "swipe-save");
+      setTimeout(() => renderContent(), 150);
+    } else {
+      card.style.transform = "translateX(0)";
+      card.classList.remove("swipe-read", "swipe-save");
+    }
+    activeCard = null; swiping = false;
+  }, { passive: true });
+
+  container.addEventListener("touchcancel", () => {
+    if (activeCard) {
+      activeCard.style.transition = "transform .2s ease";
+      activeCard.style.transform = "translateX(0)";
+      activeCard.classList.remove("swipe-read", "swipe-save");
+    }
+    activeCard = null; swiping = false;
+  }, { passive: true });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// PULL TO REFRESH — standard mobile pattern, only triggers when
+// the page is scrolled all the way to the top.
+// ═══════════════════════════════════════════════════════════
+(function setupPullToRefresh() {
+  const THRESH = 70;
+  let startY = 0, pulling = false, triggered = false;
+
+  const indicator = document.createElement("div");
+  indicator.id = "ptr-indicator";
+  indicator.textContent = "↻";
+  document.body.insertBefore(indicator, document.body.firstChild);
+
+  document.addEventListener("touchstart", e => {
+    if (window.scrollY > 4 || state.loading) return;
+    startY = e.touches[0].clientY;
+    pulling = true; triggered = false;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { pulling = false; return; }
+    const pull = Math.min(dy * 0.5, 90);
+    indicator.style.transition = "none";
+    indicator.style.transform = `translateY(${pull}px) rotate(${pull * 3}deg)`;
+    indicator.style.opacity = String(Math.min(pull / THRESH, 1));
+    if (pull >= THRESH && !triggered) { triggered = true; haptic(20); }
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    if (pulling && triggered && !state.loading) loadAll();
+    pulling = false;
+    indicator.style.transition = "transform .3s ease, opacity .3s ease";
+    indicator.style.transform = "translateY(0) rotate(0)";
+    indicator.style.opacity = "0";
+  }, { passive: true });
+})();
+
+// ═══════════════════════════════════════════════════════════
 // ARTICLE INLINE EXPAND
 // ═══════════════════════════════════════════════════════════
 
@@ -2954,6 +3298,7 @@ let modalCache  = {};   // cardId → summary text
 let expandedId  = null; // currently expanded card id
 
 function toggleArticle(cardId) {
+  haptic(8);
   if (expandedId === cardId) {
     collapseCard(cardId);
   } else {
