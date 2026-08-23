@@ -1102,8 +1102,13 @@ function createLimiter(maxConcurrent) {
   }
   return fn => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); pump(); });
 }
-const rssLimiter  = createLimiter(10); // max 10 concurrent CORS-proxy calls app-wide
-const jinaLimiter = createLimiter(3);  // max 3 concurrent r.jina.ai calls app-wide (stricter limits)
+// Per-proxy-service limiters (not one shared bucket) — each of the 5 proxy
+// services gets its own concurrency cap, so total throughput scales with the
+// number of services while no single one ever gets slammed. This roughly
+// doubles overall fetch speed vs one flat global cap, without reintroducing
+// the earlier burst-overload problem (each service still individually capped).
+PROXIES.forEach(p => { p.limiter = createLimiter(4); }); // max 4 concurrent per proxy service
+const jinaLimiter = createLimiter(5);  // max 5 concurrent r.jina.ai calls app-wide
 
 
 
@@ -1246,21 +1251,29 @@ async function categorizeWithAI(rawItems, groqKey) {
   const localItems    = rawItems.filter(it => it.tag);    // Ярославль + Москва only
   const nonLocalItems = rawItems.filter(it => !it.tag);   // everything else → AI
 
-  const BATCH = 25;
+  const BATCH = 30;
   const catMap = {};
 
+  // Batches are independent requests — fire them all in parallel instead of
+  // awaiting one at a time. With ~100 items / batch 30 = ~4 batches, this
+  // turns "4x round-trip time" into "~1x round-trip time" (bounded by the
+  // slowest single batch, not the sum of all of them).
+  const batches = [];
   for (let i = 0; i < nonLocalItems.length; i += BATCH) {
-    const batch  = nonLocalItems.slice(i, i + BATCH);
-    const result = await classifyBatchGroq(batch, groqKey);
+    batches.push({ offset: i, items: nonLocalItems.slice(i, i + BATCH) });
+  }
+
+  await Promise.all(batches.map(async ({ offset, items }) => {
+    const result = await classifyBatchGroq(items, groqKey);
     if (result) {
-      result.forEach(r => { if (typeof r.i === "number" && r.cat) catMap[i + r.i] = r.cat; });
+      result.forEach(r => { if (typeof r.i === "number" && r.cat) catMap[offset + r.i] = r.cat; });
     }
     // Fill any gaps (missing indices, or Groq unavailable) with regex fallback
-    batch.forEach((it, bi) => {
-      const idx = i + bi;
+    items.forEach((it, bi) => {
+      const idx = offset + bi;
       if (!catMap[idx]) catMap[idx] = categorizeFallback(it.title, it.description);
     });
-  }
+  }));
 
   const classified = nonLocalItems.map((it, idx) => {
     const cat = catMap[idx];
@@ -1423,7 +1436,7 @@ async function fetchSource(src) {
   const urlList = src.urls || [src.url];
   const jinaUrls = urlList.filter(u => u.startsWith("JINA:")).map(u => u.slice(5));
   const rssUrls  = urlList.filter(u => !u.startsWith("JINA:"));
-  const TIMEOUT = 8000;
+  const TIMEOUT = 7000;
 
   const attempts = [];
 
@@ -1431,7 +1444,7 @@ async function fetchSource(src) {
   // firing at once don't slam r.jina.ai with a burst
   jinaUrls.forEach(u => {
     attempts.push(
-      jinaLimiter(() => fetchJinaOne(u, src, 9000))
+      jinaLimiter(() => fetchJinaOne(u, src, 8000))
         .catch(e => Promise.reject("Jina: " + (e?.message || "ошибка")))
     );
   });
@@ -1441,7 +1454,7 @@ async function fetchSource(src) {
   rssUrls.forEach(u => {
     PROXIES.forEach(proxy => {
       attempts.push(
-        rssLimiter(() => tryOne(proxy, u, TIMEOUT)).then(xml => {
+        proxy.limiter(() => tryOne(proxy, u, TIMEOUT)).then(xml => {
           if (!xml) throw new Error("нет ответа");
           const items = parseRSSXML(xml, src);
           if (!items.length) throw new Error("пустая лента");
