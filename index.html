@@ -782,6 +782,7 @@ span.srcfbtn.err.on {
       <input type="password" class="settings-input" id="groq-key-input" placeholder="gsk_..." autocomplete="off" style="max-width:280px">
       <button class="settings-save" onclick="saveModelKey('groq')">Сохранить</button>
       <span class="model-key-hint">Бесплатно · <a href="https://console.groq.com" target="_blank">console.groq.com</a></span>
+      <span class="model-key-hint" style="margin-left:10px;opacity:.5" title="Если модель в логах Groq не совпадает с этой сборкой — у вас открыта старая закэшированная вкладка/PWA. Полностью закройте и переоткройте приложение.">· сборка 2026-08-23 gpt-oss</span>
     </div>
 
 
@@ -2990,7 +2991,7 @@ function renderTextHTML(text, isAI, loadingAI, powered) {
   const hint = loadingAI
     ? `<span class="expand-powered" style="color:var(--accent2)">&#x1F9E0; Генерирую резюме…</span>`
     : isAI
-      ? `<span class="expand-powered">${powered||"Powered by claude-haiku-4-5-20251001"}</span>`
+      ? `<span class="expand-powered">${powered||"Powered by Groq GPT-OSS"}</span>`
       : ``;
   return `<p class="expand-summary">${escHtml(text)}</p>${hint}`;
 }
@@ -3291,7 +3292,7 @@ async function generateAISummary(card, bodyEl, cardId) {
       if (text) {
         modalCache[cardId] = {
           text, ai: true,
-          powered: "Groq · Llama 3.3 · " + (fromFull ? "из статьи" : "из RSS")
+          powered: "Groq · GPT-OSS · " + (fromFull ? "из статьи" : "из RSS")
         };
         if (expandedId === cardId) renderSummary(bodyEl, cardId);
         return;
