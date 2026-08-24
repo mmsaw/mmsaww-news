@@ -1011,6 +1011,7 @@ const SOURCES = [
   // ── Российские федеральные ────────────────────────────────────────────────
   {
     urls: [
+      "JINA:https://www.kommersant.ru/",
       "https://www.kommersant.ru/RSS/news.xml",
       "https://news.google.com/rss/search?q=site:kommersant.ru&hl=ru&gl=RU&ceid=RU:ru",
     ],
@@ -1059,6 +1060,7 @@ const SOURCES = [
   {
     urls: [
       // RBC — official RSS export, was previously miscategorized under Banki.ru
+      "JINA:https://www.rbc.ru/short_news/",
       "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
       "https://news.google.com/rss/search?q=site:rbc.ru&hl=ru&gl=RU&ceid=RU:ru",
     ],
@@ -1067,6 +1069,7 @@ const SOURCES = [
   // ── Западные ─────────────────────────────────────────────────────────────
   {
     urls: [
+      "JINA:https://www.bbc.com/news",
       "https://feeds.bbci.co.uk/news/world/rss.xml",
       "https://feeds.bbci.co.uk/news/rss.xml?edition=int",
       "https://feeds.bbci.co.uk/news/rss.xml",
@@ -1077,6 +1080,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "JINA:https://www.aljazeera.com/",
       "https://www.aljazeera.com/xml/rss/all.xml",
       "https://www.aljazeera.com/xml/rss/world.xml",
       "https://www.aljazeera.com/xml/rss/middleeast.xml",
@@ -1086,6 +1090,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "JINA:https://www.politico.com/",
       "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
@@ -1094,6 +1099,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "JINA:https://www.reuters.com/world/",
       "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
     ],
@@ -1101,6 +1107,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "JINA:https://apnews.com/",
       "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
     ],
@@ -1108,6 +1115,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "JINA:https://habr.com/ru/all/",
       "https://habr.com/ru/rss/all/all/",
       "https://news.google.com/rss/search?q=when:1d+allinurl:habr.com&hl=ru&gl=RU&ceid=RU:ru",
     ],
@@ -1150,7 +1158,7 @@ const SOURCES = [
 // TYPE "cors"     — returns raw RSS XML
 // TYPE "rss2json" — rss2json.com fetches feed server-side (bypasses UA blocks)
 const PROXIES = [
-  { type:"cors",     fn: url => `https://corsproxy.io/?${encodeURIComponent(url)}`                   },
+  { type:"cors",     fn: url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`               },
   { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=50` },
   { type:"cors",     fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`      },
   { type:"cors",     fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
@@ -1183,7 +1191,7 @@ function createLimiter(maxConcurrent) {
 // doubles overall fetch speed vs one flat global cap, without reintroducing
 // the earlier burst-overload problem (each service still individually capped).
 PROXIES.forEach(p => { p.limiter = createLimiter(6); }); // max 6 concurrent per proxy service
-const jinaLimiter = createLimiter(6);  // max 6 concurrent r.jina.ai calls app-wide
+const jinaLimiter = createLimiter(8);  // max 8 concurrent r.jina.ai calls app-wide (raised: now used by all 13 sources as a fallback, not just 5)
 
 
 
@@ -1410,19 +1418,28 @@ async function tryOne(proxyObj, sourceUrl, timeout) {
   try {
     const res = await fetch(proxyObj.fn(sourceUrl), { signal: ctrl.signal });
     clearTimeout(tid);
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error("HTTP " + res.status);
 
     if (proxyObj.type === "rss2json") {
       const json = await res.json();
-      if (json.status !== "ok" || !json.items?.length) return null;
+      if (json.status !== "ok" || !json.items?.length) throw new Error("пустой json");
       const xmlItems = json.items.map(it => `<item><title><![CDATA[${it.title||""}]]></title><description><![CDATA[${it.description||it.content||""}]]></description><link>${it.link||""}</link><pubDate>${it.pubDate||""}</pubDate></item>`).join("");
       return `<?xml version="1.0"?><rss><channel>${xmlItems}</channel></rss>`;
     }
 
     const ct   = res.headers.get("content-type") || "";
     const text = ct.includes("json") ? (await res.json()).contents || "" : await res.text();
-    return (text && text.length > 100) ? text : null;
-  } catch { clearTimeout(tid); return null; }
+    if (!text || text.length <= 100) throw new Error("пустой ответ");
+    return text;
+  } catch (e) {
+    clearTimeout(tid);
+    // Distinguish an aborted/timed-out request from a genuine network/CORS
+    // failure — "Failed to fetch" is what browsers throw when a request is
+    // blocked outright (ad-blocker, DNS filter, carrier firewall), which
+    // reads very differently to a user than a plain timeout.
+    if (e?.name === "AbortError") throw new Error("таймаут");
+    throw new Error(e?.message || "сеть недоступна");
+  }
 }
 
 // Heuristic: many RU news sites embed the publish date in the URL path
