@@ -1086,6 +1086,7 @@ const SOURCES = [
   },
   {
     urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
     ],
@@ -1093,12 +1094,14 @@ const SOURCES = [
   },
   {
     urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
     ],
     name:"Reuters", country:"west", maxAgeDays:2
   },
   {
     urls: [
+      "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
     ],
     name:"AP", country:"west", maxAgeDays:2
@@ -1521,7 +1524,7 @@ async function fetchSource(src) {
   const urlList = src.urls || [src.url];
   const jinaUrls = urlList.filter(u => u.startsWith("JINA:")).map(u => u.slice(5));
   const rssUrls  = urlList.filter(u => !u.startsWith("JINA:"));
-  const TIMEOUT = 5500;
+  const TIMEOUT = 6500;
 
   const attempts = [];
 
@@ -1541,7 +1544,7 @@ async function fetchSource(src) {
   // requests — most of them redundant, since 3 proxies per url is already
   // safely redundant, and sources with multiple urls add further redundancy
   // on top. This cuts total attempts by ~40% without giving up real coverage.
-  const PROXIES_PER_URL = 3;
+  const PROXIES_PER_URL = 4;
   rssUrls.forEach((u, ui) => {
     for (let k = 0; k < PROXIES_PER_URL; k++) {
       const proxy = PROXIES[(ui + k) % PROXIES.length];
@@ -1985,6 +1988,18 @@ async function loadAll() {
   );
 
   if (run !== state.runId) return;
+
+  // Defensive safety net: every source's status should already be "ok" or
+  // "err" by this point (each was individually capped above). If any is
+  // somehow still stuck on "load" — e.g. this run got superseded mid-flight
+  // by another refresh — force it to "err" so the status bar never shows a
+  // permanently spinning "…" dot.
+  SOURCES.forEach(s => {
+    if (state.srcStatus[s.name] === "load") {
+      state.srcStatus[s.name] = "err";
+      state.srcError[s.name] = "не завершилось";
+    }
+  });
 
   state.loading = false;
   state.lastUpdated = new Date();
