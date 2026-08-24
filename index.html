@@ -1012,7 +1012,6 @@ const SOURCES = [
   {
     urls: [
       "https://www.kommersant.ru/RSS/news.xml",
-      "https://www.kommersant.ru/rss/news.xml",
       "https://news.google.com/rss/search?q=site:kommersant.ru&hl=ru&gl=RU&ceid=RU:ru",
     ],
     name:"Коммерсант", country:"ru"
@@ -1087,7 +1086,6 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
       "https://www.politico.eu/feed/",
     ],
@@ -1095,14 +1093,12 @@ const SOURCES = [
   },
   {
     urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
     ],
     name:"Reuters", country:"west", maxAgeDays:2
   },
   {
     urls: [
-      "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
       "https://news.google.com/rss/search?q=when:2d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
     ],
     name:"AP", country:"west", maxAgeDays:2
@@ -1183,8 +1179,8 @@ function createLimiter(maxConcurrent) {
 // number of services while no single one ever gets slammed. This roughly
 // doubles overall fetch speed vs one flat global cap, without reintroducing
 // the earlier burst-overload problem (each service still individually capped).
-PROXIES.forEach(p => { p.limiter = createLimiter(4); }); // max 4 concurrent per proxy service
-const jinaLimiter = createLimiter(5);  // max 5 concurrent r.jina.ai calls app-wide
+PROXIES.forEach(p => { p.limiter = createLimiter(6); }); // max 6 concurrent per proxy service
+const jinaLimiter = createLimiter(6);  // max 6 concurrent r.jina.ai calls app-wide
 
 
 
@@ -1525,7 +1521,7 @@ async function fetchSource(src) {
   const urlList = src.urls || [src.url];
   const jinaUrls = urlList.filter(u => u.startsWith("JINA:")).map(u => u.slice(5));
   const rssUrls  = urlList.filter(u => !u.startsWith("JINA:"));
-  const TIMEOUT = 7000;
+  const TIMEOUT = 5500;
 
   const attempts = [];
 
@@ -1533,15 +1529,22 @@ async function fetchSource(src) {
   // firing at once don't slam r.jina.ai with a burst
   jinaUrls.forEach(u => {
     attempts.push(
-      jinaLimiter(() => fetchJinaOne(u, src, 8000))
+      jinaLimiter(() => fetchJinaOne(u, src, 6500))
         .catch(e => Promise.reject("Jina: " + (e?.message || "ошибка")))
     );
   });
 
-  // RSS proxy attempts — throttled through the shared rssLimiter for the
-  // same reason (was the main cause of many sources failing together)
-  rssUrls.forEach(u => {
-    PROXIES.forEach(proxy => {
+  // RSS proxy attempts — each URL tries only 3 proxies (not all 5), rotating
+  // through the PROXIES array by url index so different urls exercise
+  // different proxy subsets. With 13 sources firing at once, trying every
+  // url against every proxy was generating 200+ simultaneous queued
+  // requests — most of them redundant, since 3 proxies per url is already
+  // safely redundant, and sources with multiple urls add further redundancy
+  // on top. This cuts total attempts by ~40% without giving up real coverage.
+  const PROXIES_PER_URL = 3;
+  rssUrls.forEach((u, ui) => {
+    for (let k = 0; k < PROXIES_PER_URL; k++) {
+      const proxy = PROXIES[(ui + k) % PROXIES.length];
       attempts.push(
         proxy.limiter(() => tryOne(proxy, u, TIMEOUT)).then(xml => {
           if (!xml) throw new Error("нет ответа");
@@ -1550,7 +1553,7 @@ async function fetchSource(src) {
           return items;
         }).catch(e => Promise.reject(proxy.type + ": " + (e?.message || "ошибка")))
       );
-    });
+    }
   });
 
   if (!attempts.length) return { items: [], errors: ["источник не настроен"] };
@@ -1955,11 +1958,25 @@ async function loadAll() {
   }
   setRefreshState(true);
 
-  // Fetch all sources in parallel
+  // Fetch all sources in parallel — each one individually capped so a single
+  // slow/congested source can never hold up first render for everyone else.
+  // (Previously: Promise.all waited for the SLOWEST source, so one stuck proxy
+  // chain could stall the whole app for a minute+. Now: after HARD_CAP, that
+  // source is marked as failed for THIS pass and picked up by the existing
+  // auto-retry below — its underlying fetch keeps running harmlessly in the
+  // background and is simply not waited on.)
+  const HARD_CAP = 9000;
   const results = await Promise.all(
     SOURCES.map(async src => {
-      const { items, errors } = await fetchSource(src);
+      const capped = await Promise.race([
+        fetchSource(src),
+        new Promise(resolve => setTimeout(
+          () => resolve({ items: [], errors: ["не успел за " + (HARD_CAP/1000) + "с"] }),
+          HARD_CAP
+        )),
+      ]);
       if (run !== state.runId) return [];
+      const { items, errors } = capped;
       state.srcStatus[src.name] = items.length ? "ok" : "err";
       state.srcError[src.name] = items.length ? null : (errors[0] || "нет ответа");
       renderStatusBar();
@@ -2023,7 +2040,7 @@ async function loadAll() {
     setTimeout(() => {
       if (run !== state.runId) return; // a newer refresh superseded this one
       failedNow.forEach(name => retrySource(name));
-    }, 9000);
+    }, 4000);
   }
 }
 
