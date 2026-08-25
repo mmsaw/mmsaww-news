@@ -2835,7 +2835,7 @@ async function sendChat() {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
         body: JSON.stringify({
-          model: "groq/compound",
+          model: "groq/compound-mini",
           max_tokens: 600,
           messages: [
             { role: "system", content: systemPrompt },
@@ -3787,7 +3787,7 @@ async function askCardAI(cardId) {
   try {
     // groq/compound has built-in web search
     const d = await groqFetch({
-      model: "groq/compound",
+      model: "groq/compound-mini",
       max_tokens: 500,
       messages: [
         { role: "system", content: systemMsg },
@@ -3864,6 +3864,14 @@ async function shareCardScreenshot(cardId) {
         --accent:${accent}; --accent2:${accent2}; --accent-bg:${accentBg};
         --mono:${mono}; --red:${red}; --green:#27ae60;
         --shadow-card:0 1px 4px rgba(0,0,0,.10);
+      }
+      /* Freeze every animation/transition inside the card for the capture —
+         covers the NEW-badge pulse, entrance fade, and anything else that
+         could be mid-frame and cause a blank or blurry screenshot */
+      #card-${cardId} *, #card-${cardId} *::after, #card-${cardId} *::before {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
       }`;
     document.head.appendChild(styleEl);
 
@@ -3872,6 +3880,17 @@ async function shareCardScreenshot(cardId) {
     const origO = cardEl.style.overflow;
     cardEl.style.height = "auto";
     cardEl.style.overflow = "visible";
+
+    // Kill the entrance animation before capturing. If the card just
+    // rendered (fresh filter switch, background refresh, or a late card
+    // in the staggered cascade), html2canvas can catch it mid-fade —
+    // literally opacity:0 at the moment of capture, producing a blank/
+    // white image. Setting animation:none snaps it straight to its
+    // final resting state regardless of timing.
+    const origAnim = cardEl.style.animation;
+    cardEl.style.animation = "none";
+    cardEl.style.opacity = "1";
+    cardEl.style.transform = "none";
 
     // Hide action buttons from screenshot
     const hideEls = cardEl.querySelectorAll(
@@ -3895,8 +3914,12 @@ async function shareCardScreenshot(cardId) {
       `color:${text3};font-family:-apple-system,sans-serif;text-transform:uppercase"> NEWS</span>`;
     cardEl.appendChild(brand);
 
-    // Wait one frame so injected styles paint
-    await new Promise(r => setTimeout(r, 80));
+    // Force a reflow so the animation:none / opacity:1 overrides above
+    // are actually applied before html2canvas reads computed styles
+    void cardEl.offsetHeight;
+
+    // Wait for styles to paint
+    await new Promise(r => setTimeout(r, 120));
 
     const canvas = await html2canvas(cardEl, {
       backgroundColor: surface,
@@ -3913,6 +3936,9 @@ async function shareCardScreenshot(cardId) {
     styleEl.remove();
     cardEl.style.height = origH;
     cardEl.style.overflow = origO;
+    cardEl.style.animation = origAnim;
+    cardEl.style.opacity = "";
+    cardEl.style.transform = "";
     hideEls.forEach(el => { el.style.display = el.dataset.ssHide || ""; delete el.dataset.ssHide; });
 
     // Share (mobile) or download (desktop)
