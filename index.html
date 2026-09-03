@@ -1012,8 +1012,21 @@ const SOURCES = [
   {
     urls: [
       "JINA:https://www.kommersant.ru/",
+      // Second Jina entry point — confirmed live "лента" page with proper
+      // headline links, gives a genuinely different render pass through the
+      // one channel (Jina) that's proven reliable when the CORS-proxy pool
+      // is congested or blocked on the user's network
+      "JINA:https://www.kommersant.ru/lenta",
       "https://www.kommersant.ru/RSS/news.xml",
       "https://news.google.com/rss/search?q=site:kommersant.ru&hl=ru&gl=RU&ceid=RU:ru",
+      // Telegram mirror via RSSHub (official channel, 270K+ subs)
+      "https://rsshub.app/telegram/channel/kommersant/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      // Same Telegram channel, but scraped DIRECTLY via Jina instead of
+      // through RSSHub — RSSHub's public instance is itself a third-party
+      // service that can be down/rate-limited independently of Telegram or
+      // Kommersant. Reading t.me/s/<channel> (Telegram's own public preview
+      // page) through Jina removes that middleman entirely.
+      "JINA:https://t.me/s/kommersant",
     ],
     name:"Коммерсант", country:"ru"
   },
@@ -1026,7 +1039,10 @@ const SOURCES = [
       "https://www.forbes.ru/rss/news",
       "https://www.forbes.ru/rss",
       "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
-      "https://rsshub.app/telegram/channel/forbes_russia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
+      "https://rsshub.app/telegram/channel/forbesrussia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0", // fixed: real handle has no underscore
+      // Same channel, scraped directly via Jina — bypasses RSSHub as a
+      // separate point of failure (see Коммерсант for the same reasoning)
+      "JINA:https://t.me/s/forbesrussia",
     ],
     name:"Forbes RU", country:"ru"
   },
@@ -1158,7 +1174,11 @@ const SOURCES = [
 // TYPE "cors"     — returns raw RSS XML
 // TYPE "rss2json" — rss2json.com fetches feed server-side (bypasses UA blocks)
 const PROXIES = [
-  { type:"cors",     fn: url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`               },
+  // corsproxy.io now restricts its free tier to localhost/dev only (since
+  // ~Feb 2026) — it silently rejects requests from real deployed sites like
+  // this one, so it was a guaranteed dead slot in every rotation. Swapped
+  // for killcors.com, a currently-working corsproxy.io-compatible service.
+  { type:"cors",     fn: url => `https://proxy.killcors.com/?url=${encodeURIComponent(url)}`         },
   { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=50` },
   { type:"cors",     fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`      },
   { type:"cors",     fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
