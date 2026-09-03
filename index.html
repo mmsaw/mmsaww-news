@@ -1483,7 +1483,14 @@ function parseJinaMarkdown(text, src, targetUrl) {
   while ((m = linkRe.exec(text)) !== null && out.length < 30) {
     const [, rawTitle, link] = m;
     try { if (!new URL(link).hostname.includes(domain)) continue; } catch { continue; }
-    const title = rawTitle.replace(/\s+/g, " ").trim();
+    const title = rawTitle
+      .replace(/\s+/g, " ")
+      // Strip "most read" rank-number + markdown-heading artifacts that
+      // leak through when Jina linearizes nested widgets, e.g. a BBC
+      // "5\n\n## Watch: Trump..." block collapses to "5 ## Watch: Trump..."
+      .replace(/^\d{1,2}\s*#{1,6}\s*/, "")
+      .replace(/^#{1,6}\s*/, "")
+      .trim();
     if (title.length < 20) continue;
     if (seen.has(link)) continue;
     if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
