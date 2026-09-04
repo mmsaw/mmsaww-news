@@ -2129,7 +2129,9 @@ async function retrySource(name) {
   state.cards = mergeWithStored(newCards);
   saveCards(state.cards);
   renderHeader();
-  if (!expandedId) renderContent();
+  // Several sources can retry around the same time — debounced so their
+  // renders coalesce instead of stacking up as separate full re-renders
+  if (!expandedId) renderContentDebounced();
   translateCards(state.cards, "ru", "");
 }
 
@@ -2198,19 +2200,41 @@ ${lines}`;
 }
 
 // Free Google Translate fallback (no API key needed)
-async function gtranslate(text, targetLang) {
+async function gtranslate(text, targetLang, attempt = 0) {
   if (!text) return text;
   const sl = targetLang === "ru" ? "en" : "ru";
   const tl = targetLang;
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.slice(0, 1000))}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (res.status === 429 && attempt < 1) {
+      // Google's unofficial "gtx" endpoint rate-limits in bursts — one short
+      // backoff-and-retry clears most of them without giving up entirely
+      await new Promise(r => setTimeout(r, 1200));
+      return gtranslate(text, targetLang, attempt + 1);
+    }
     if (!res.ok) return null;
     const data = await res.json();
     // Response: [[["translated","original",...], ...], ...]
     const translated = (data[0] || []).map(chunk => chunk[0] || "").join("");
     return translated || null;
   } catch { return null; }
+}
+
+// Fallback translator via Groq (gpt-oss) — used when Google's endpoint has
+// failed for a given string even after the retry above. Keeps translation
+// working through Google rate-limit spikes instead of just giving up.
+async function groqTranslate(text, targetLang) {
+  if (!text || !state.groqKey) return null;
+  const dir = targetLang === "ru" ? "русский" : "английский";
+  const d = await groqFetch({
+    model: "openai/gpt-oss-20b",
+    max_tokens: 600,
+    reasoning_effort: "low",
+    messages: [{ role: "user", content:
+      `Переведи на ${dir} язык, только перевод без пояснений и без кавычек:\n\n${text.slice(0,1000)}` }],
+  }, state.groqKey, 12000);
+  return d?.choices?.[0]?.message?.content?.trim() || null;
 }
 
 async function translateCards(cards, targetLang, apiKey) {
@@ -2228,50 +2252,27 @@ async function translateCards(cards, targetLang, apiKey) {
   state.translating = true;
   renderStatusBar();
 
-  if (apiKey) {
-    // ── Claude Haiku: batch translation (high quality) ──────────────────────
-    const BATCH = 8;
-    for (let i = 0; i < toTranslate.length; i += BATCH) {
-      const batch = toTranslate.slice(i, i + BATCH);
-      const result = await translateBatch(
-        batch.map(c => ({ title: c.title, summary: c.summary })),
-        targetLang, apiKey
-      );
-      if (result) {
-        batch.forEach((card, bi) => {
-          const r = result[bi];
-          if (r?.title)   card[fieldT] = r.title;
-          if (r?.summary) card[fieldS] = r.summary;
-        });
-      } else {
-        // Claude failed — fall back to Google for this batch
-        await Promise.all(batch.map(async card => {
-          const [t, s] = await Promise.all([
-            gtranslate(card.title, targetLang),
-            gtranslate(card.summary, targetLang),
-          ]);
-          if (t) card[fieldT] = t;
-          if (s) card[fieldS] = s;
-        }));
-      }
-      renderContent();
-    }
-  } else {
-    // ── Google Translate: free, parallel per card ───────────────────────────
-    const CONCURRENT = 5; // don't hammer Google
-    for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
-      const batch = toTranslate.slice(i, i + CONCURRENT);
-      await Promise.all(batch.map(async card => {
-        const [t, s] = await Promise.all([
-          gtranslate(card.title, targetLang),
-          gtranslate(card.summary, targetLang),
-        ]);
-        if (t) card[fieldT] = t;
-        if (s) card[fieldS] = s;
-      }));
-      renderContent(); // show progress as each batch finishes
-    }
+  // Google Translate first (free, no key needed), gpt-oss as fallback per
+  // string when Google fails even after its own retry — keeps translation
+  // working through Google rate-limit spikes instead of silently giving up.
+  const CONCURRENT = 3; // gentler pace — fewer simultaneous hits to Google's endpoint
+  for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
+    const batch = toTranslate.slice(i, i + CONCURRENT);
+    await Promise.all(batch.map(async card => {
+      let [t, s] = await Promise.all([
+        gtranslate(card.title, targetLang),
+        gtranslate(card.summary, targetLang),
+      ]);
+      if (!t) t = await groqTranslate(card.title, targetLang);
+      if (!s) s = await groqTranslate(card.summary, targetLang);
+      if (t) card[fieldT] = t;
+      if (s) card[fieldS] = s;
+    }));
+    renderContentDebounced(); // show progress, coalesced — no flicker
   }
+
+  if (_renderDebounceTimer) { clearTimeout(_renderDebounceTimer); _renderDebounceTimer = null; }
+  renderContent();
 
   state.translating = false;
   renderStatusBar();
@@ -2493,6 +2494,22 @@ function renderEntityTimeline() {
     return;
   }
   el.innerHTML = banner + `<div class="grid">${matches.map(c => cardHTML(c)).join("")}</div>`;
+}
+
+// Debounced re-render — background work (translation batches, source
+// retries) used to call renderContent() once per small chunk, which rebuilds
+// the entire card grid from scratch every time. With 100+ cards that meant
+// dozens of full re-renders in under a minute — replaying every card's
+// entrance animation each time, which is exactly what looked like constant
+// blinking/jitter. This coalesces rapid-fire calls into at most one render
+// every ~1.2s, while still updating promptly for user-triggered actions.
+let _renderDebounceTimer = null;
+function renderContentDebounced(delay = 1200) {
+  if (_renderDebounceTimer) return;
+  _renderDebounceTimer = setTimeout(() => {
+    _renderDebounceTimer = null;
+    renderContent();
+  }, delay);
 }
 
 function renderContent() {
@@ -2926,7 +2943,7 @@ async function loadCBR() {
   const CBR = "https://www.cbr-xml-daily.ru/daily_json.js";
   const proxies = [
     `https://api.allorigins.win/get?url=${encodeURIComponent(CBR)}`,
-    `https://corsproxy.io/?${encodeURIComponent(CBR)}`,
+    `https://proxy.killcors.com/?url=${encodeURIComponent(CBR)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(CBR)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(CBR)}`,
   ];
