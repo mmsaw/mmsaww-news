@@ -2091,16 +2091,8 @@ async function loadAll() {
   state.sentimentDone = false;
   setTimeout(() => triggerSentiment(), 3000);
 
-  // ── Auto-retry sources that failed on this pass ────────────────────────
-  // CORS proxies and Jina are often just momentarily overloaded — a single
-  // delayed retry recovers most of these without the user lifting a finger.
-  const failedNow = SOURCES.filter(s => state.srcStatus[s.name] === "err").map(s => s.name);
-  if (failedNow.length) {
-    setTimeout(() => {
-      if (run !== state.runId) return; // a newer refresh superseded this one
-      failedNow.forEach(name => retrySource(name));
-    }, 4000);
-  }
+  // Auto-retry removed — failed sources stay marked "err" with their ↻
+  // button available for a manual retry, instead of firing on their own.
 }
 
 // Re-fetch a single source and merge any new items into the current feed —
@@ -2984,15 +2976,8 @@ async function loadCBR() {
   document.getElementById("rates-ts").textContent =
     "ЦБ РФ · " + dateStr + (isWeekend ? " · пятничный курс" : "");
 
-  // Weekday auto-refresh at 11:30 MSK
-  if (!isWeekend) {
-    const msk = new Date(now.toLocaleString("en-US",{timeZone:"Europe/Moscow"}));
-    const mskMin = msk.getHours()*60+msk.getMinutes();
-    const ms = mskMin < 11*60+30
-      ? (11*60+30-mskMin)*60000
-      : 30*60000;
-    setTimeout(loadCBR, ms);
-  }
+  // Auto-refresh removed — CBR rate now only updates when the user
+  // refreshes the page or taps the manual refresh button.
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3034,7 +3019,7 @@ function loadWeather() {
       document.getElementById("weather-desc").className = "rate-chg flat";
       document.getElementById("weather-item").style.display = "";
       document.getElementById("weather-dot").style.display  = "";
-      setTimeout(loadWeather, 30*60*1000);
+      // Auto-refresh removed — weather now only updates on manual refresh.
     } catch {}
   }, ()=>{}, {timeout:9000, maximumAge:300000});
 }
