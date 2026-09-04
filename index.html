@@ -2247,6 +2247,13 @@ async function translateCards(cards, targetLang, apiKey) {
   // Google Translate first (free, no key needed), gpt-oss as fallback per
   // string when Google fails even after its own retry — keeps translation
   // working through Google rate-limit spikes instead of silently giving up.
+  //
+  // Each finished card is patched into the DOM individually (patchCardTitle)
+  // instead of triggering a full renderContent() rebuild. Translation can be
+  // slow/flaky and take a long time to work through many cards — a full
+  // grid rebuild on every little bit of progress is what looked like a
+  // "refresh every few seconds" while reading. Patching one <h3> at a time
+  // is invisible: no flicker, no scroll jump, no replayed animation.
   const CONCURRENT = 3; // gentler pace — fewer simultaneous hits to Google's endpoint
   for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
     const batch = toTranslate.slice(i, i + CONCURRENT);
@@ -2259,12 +2266,9 @@ async function translateCards(cards, targetLang, apiKey) {
       if (!s) s = await groqTranslate(card.summary, targetLang);
       if (t) card[fieldT] = t;
       if (s) card[fieldS] = s;
+      if (t || s) patchCardTitle(card);
     }));
-    renderContentDebounced(); // show progress, coalesced — no flicker
   }
-
-  if (_renderDebounceTimer) { clearTimeout(_renderDebounceTimer); _renderDebounceTimer = null; }
-  renderContent();
 
   state.translating = false;
   renderStatusBar();
@@ -2289,6 +2293,26 @@ function displayTitle(card) {
 function displaySummary(card) {
   if (state.lang === "ru") return decodeEntities(card.summary_ru || card.summary || "");
   return decodeEntities(card.summary_en || card.summary || "");
+}
+
+// Surgically update just ONE card's title in the DOM once its translation
+// arrives — instead of rebuilding the entire grid (renderContent()). With
+// many cards translating in the background, patching in place means no
+// flicker, no lost scroll position, and no replayed entrance animation —
+// translation can take as long as it needs without disturbing reading.
+function patchCardTitle(card) {
+  const titleEl = document.querySelector(`#card-${card.id} .ctitle`);
+  if (!titleEl) return; // card isn't in the current view — nothing to patch
+  const newBadge = card.isNew ? '<span class="card-new-badge">NEW</span>' : "";
+  titleEl.innerHTML = escHtml(displayTitle(card)) + newBadge;
+  // Drop the "⟳ перевод" pending indicator now that translation landed
+  const pendingEl = document.querySelector(`#card-${card.id} .ctags .csynth`);
+  if (pendingEl && pendingEl.textContent.includes("перевод")) pendingEl.remove();
+  // If this card is currently expanded, refresh its visible summary too
+  if (typeof expandedId !== "undefined" && expandedId === card.id) {
+    const bodyEl = document.getElementById(`expand-body-${card.id}`);
+    if (bodyEl && typeof renderSummary === "function") renderSummary(bodyEl, card.id);
+  }
 }
 
 
