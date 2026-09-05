@@ -1,1 +1,42 @@
+name: Fetch News
 
+on:
+  schedule:
+    # Every 20 minutes. GitHub sometimes delays cron by a few minutes under
+    # load - that's fine here, we're not chasing to-the-second freshness.
+    - cron: "*/20 * * * *"
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+# Prevent two runs from racing each other and fighting over the same commit
+concurrency:
+  group: fetch-news
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # needed to commit the updated data/news.json back
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run collector
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node scripts/fetch-news.mjs
+
+      - name: Commit updated data
+        run: |
+          git config user.name "news-bot"
+          git config user.email "news-bot@users.noreply.github.com"
+          git add data/news.json
+          git diff --staged --quiet || git commit -m "Update news data [skip ci]"
+          git push
