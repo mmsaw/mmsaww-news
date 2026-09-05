@@ -45,6 +45,34 @@ const CAT_PROMPT = `Ты редактор новостного агрегато�
 Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
 [{"i":0,"cat":"finance","ent":"ФРС"},{"i":1,"cat":"lifestyle","ent":""},...]`;
 
+// Regex safety net — used when Groq is unavailable or rate-limited for a
+// given batch, so items never just silently disappear the way they did in
+// the first real run (483 fetched -> only 196 survived categorization,
+// because failed batches had nowhere to fall back to).
+const KW = {
+  geopolitics: {
+    include: /украин|ukraine|зсу|всу|обстрел|наступлен|фронт|донецк|луганск|харьков|запорожье|херсон|донбасс|бахмут|zelenskyy|зеленськ|ceasefire|перемир|иран|iran|израил|israel|газа|gaza|хамас|хезболл|хуситы|houthi|китай|china|сша|США|\busa\b|трамп|trump|байден|biden|нато|nato|ООН|\bun\b|g7|g20|макрон|macron|шольц|scholz|мид\b|госдеп|дипломат|посольств|саммит|summit|договор|treaty|санкц|военн.*операц|спецоперац|северн.*коре|north korea|тайван|taiwan|сирия|syria|йемен|yemen|талиб|taliban|пакистан|pakistan|ракетн.*удар|авиаудар|бомбардир|беженц|переговоры.*мир|мирн.*переговоры/i,
+    exclude: /курс.*рубл|рубль.*курс|биржа открыл|инфляц.*%|ВВП.*вырос|gdp.*growth|\bipo\b|акци.*упал|прибыл.*компани|chatgpt|нейросет|смартфон.*выпуск|квартальн.*отчет|выручк.*млрд/i,
+  },
+  finance: {
+    include: /рубль|доллар|евро\b|dollar|euro\b|биржа|инфляц|ВВП|gdp|цент.*банк|ЦБ\b|фрс\b|\bfed\b|акци|stock|нефть|brent|\bwti\b|газ.*цен|цен.*газ|рынок|market|банк.*отчет|инвест|крипт|crypto|биткоин|bitcoin|\bbtc\b|ethereum|\beth\b|defi|nft\b|binance|coinbase|solana|halving|staking|майнинг|ключев.*ставк|процент.*ставк|облигац|пошлин|tariff|сделк.*млрд|слияни|поглощени|\bipo\b|мвф|imf|бюджет.*дефицит|форекс|фьючерс|прибыл.*млрд|выручк|финанс.*отчет|квартальн.*результ/i,
+    exclude: /военн.*операц|ракетн.*удар|фронт|обстрел.*жертв|авиаудар|переговоры.*мир/i,
+  },
+  tech: {
+    include: /искусств.*интеллект|нейросет|chatgpt|openai|anthropic|deepseek|gemini|llm|\bgpt\b|\bии\b|\bai\b|кибератак|хакер|утечка данных|data breach|кибербезопасност|квантов|tesla|spacex|starlink|nvidia|intel|amd|apple.*выпуст|microsoft|google.*продукт|meta\b.*функц|amazon.*технолог|alibaba|huawei|samsung.*модел|робот|беспилотн.*аппарат|стартап|startup|венчур|биотех|biotech|полупроводник|semiconductor|смартфон.*выпуск|электромобил|электрокар|\b5g\b|\b6g\b/i,
+    exclude: /украин|фронт|обстрел|военн.*операц/i,
+  },
+  lifestyle: { include: /.*/, exclude: /^$/ },
+};
+
+function categorizeFallback(title, desc) {
+  const t = (title + " " + (desc||"")).toLowerCase();
+  if (KW.geopolitics.include.test(t) && !KW.geopolitics.exclude.test(t)) return "geopolitics";
+  if (KW.finance.include.test(t)     && !KW.finance.exclude.test(t))     return "finance";
+  if (KW.tech.include.test(t)        && !KW.tech.exclude.test(t))        return "tech";
+  return "lifestyle";
+}
+
 // ─── Sources (identical list to the client app — see index.html SOURCES) ──
 const SOURCES = [
   { urls: [
@@ -318,12 +346,31 @@ async function categorizeWithAI(rawItems) {
   const batches = [];
   for (let i = 0; i < nonLocal.length; i += BATCH) batches.push({ offset:i, items: nonLocal.slice(i,i+BATCH) });
 
-  await Promise.all(batches.map(async ({ offset, items }) => {
-    const result = await classifyBatchGroq(items);
-    if (result) result.forEach(r => {
-      if (typeof r.i === "number" && r.cat) { catMap[offset+r.i] = r.cat; entMap[offset+r.i] = r.ent || ""; }
-    });
-  }));
+  // Groq's free tier is 30 requests/minute. Firing all batches at once (the
+  // first real run had 16 of them) blows straight through that limit —
+  // most get rate-limited and, with nothing to fall back to, those items
+  // just vanished (483 fetched -> only 196 survived). Now: process a few
+  // batches at a time, with a pause between waves, and anything that still
+  // fails goes through the same regex classifier the client used to use —
+  // so a Groq hiccup degrades quality for that batch, never drops it.
+  const WAVE_SIZE = 4;
+  for (let w = 0; w < batches.length; w += WAVE_SIZE) {
+    const wave = batches.slice(w, w + WAVE_SIZE);
+    await Promise.all(wave.map(async ({ offset, items }) => {
+      const result = await classifyBatchGroq(items);
+      if (result) {
+        result.forEach(r => {
+          if (typeof r.i === "number" && r.cat) { catMap[offset+r.i] = r.cat; entMap[offset+r.i] = r.ent || ""; }
+        });
+      }
+      // Fill any gaps (missing indices, or Groq unavailable) with regex fallback
+      items.forEach((it, bi) => {
+        const idx = offset + bi;
+        if (!catMap[idx]) catMap[idx] = categorizeFallback(it.title, it.description);
+      });
+    }));
+    if (w + WAVE_SIZE < batches.length) await new Promise(r => setTimeout(r, 8000));
+  }
 
   const classified = nonLocal.map((it, idx) => {
     const cat = catMap[idx];
@@ -421,14 +468,20 @@ async function main() {
   cards.sort((a,b) => new Date(b.date) - new Date(a.date));
   console.log(`Final cards: ${cards.length}`);
 
-  // Translate titles for western cards — Groq first (reliable), Google fallback
-  for (const card of cards.filter(c => c.needsTranslation)) {
-    let t = await groqTranslate(card.title, "ru");
-    if (!t) t = await gtranslate(card.title, "ru");
-    if (t) card.title_ru = t;
-    let s = await groqTranslate(card.description, "ru");
-    if (!s) s = await gtranslate(card.description, "ru");
-    if (s) card.description_ru = s;
+  // Translate titles for western cards — Groq first (reliable), Google
+  // fallback. 3 at a time, same pace already proven safe in the client app.
+  const toTranslate = cards.filter(c => c.needsTranslation);
+  const TR_CONCURRENT = 3;
+  for (let i = 0; i < toTranslate.length; i += TR_CONCURRENT) {
+    const batch = toTranslate.slice(i, i + TR_CONCURRENT);
+    await Promise.all(batch.map(async card => {
+      let t = await groqTranslate(card.title, "ru");
+      if (!t) t = await gtranslate(card.title, "ru");
+      if (t) card.title_ru = t;
+      let s = await groqTranslate(card.description, "ru");
+      if (!s) s = await gtranslate(card.description, "ru");
+      if (s) card.description_ru = s;
+    }));
   }
 
   // Merge with previous run's cards still inside the 48h window (so items
