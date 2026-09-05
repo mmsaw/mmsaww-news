@@ -1498,7 +1498,11 @@ function parseJinaMarkdown(text, src, targetUrl) {
   const domain = new URL(targetUrl).hostname.replace("www.", "");
   const out = [];
   const seen = new Set();
-  const linkRe = /\[([^\]]{15,200})\]\((https?:\/\/[^)]+)\)/g;
+  // Negative lookbehind excludes markdown IMAGE syntax ![alt](url) — without
+  // it, an image caption like "![Image 2: Trump speaks...]" was matching the
+  // same [text](url) pattern as a real headline link and leaking straight
+  // into the title.
+  const linkRe = /(?<!!)\[([^\]]{15,200})\]\((https?:\/\/[^)]+)\)/g;
   let m;
   while ((m = linkRe.exec(text)) !== null && out.length < 30) {
     const [, rawTitle, link] = m;
@@ -3444,15 +3448,16 @@ function expandCard(cardId) {
 
   // ── Step 1: show RSS content immediately (always available) ──────────────
   const rssText = getRSSText(card);
-  bodyEl.innerHTML = renderTextHTML(rssText, false, !!"");
+  bodyEl.innerHTML = renderTextHTML(rssText, false, !!state.groqKey);
 
-  // No API key — show RSS immediately, then try to enrich with Jina + gtranslate
-  if (!"") {
+  // No Groq key — show RSS immediately, then try to enrich with Jina + gtranslate
+  if (!state.groqKey) {
     enrichNoKey(card, bodyEl, cardId);
     return;
   }
 
-  // ── Step 2: with key → fetch Jina in background, then Claude ─────────────
+  // ── Step 2: with key → fetch Jina in background, then Groq (writes the
+  // summary directly in Russian — no separate translation step needed) ─────
   generateAISummary(card, bodyEl, cardId);
 }
 
@@ -3665,7 +3670,9 @@ async function enrichNoKey(card, bodyEl, cardId) {
   // Always translate western sources OR English text
   const westernSources = ["BBC","Al Jazeera","Guardian","Politico"];
   const isWestern = (card.sources||[]).some(s => westernSources.some(w => s.includes(w)));
-  if (state.lang === "ru" && (isWestern || isTextEnglish(text))) {
+  const needsTranslation = state.lang === "ru" && (isWestern || isTextEnglish(text));
+  let translateOk = false;
+  if (needsTranslation) {
     // For longer Jina text — translate first 2000 chars in chunks of 500
     if (fromJina && text.length > 600) {
       const chunks = [];
@@ -3674,24 +3681,31 @@ async function enrichNoKey(card, bodyEl, cardId) {
       }
       const translated = await Promise.all(chunks.map(c => gtranslate(c, "ru")));
       const joined = translated.filter(Boolean).join(" ");
-      if (joined.length > 100) text = joined;
+      if (joined.length > 100) { text = joined; translateOk = true; }
     } else {
       const translated = await gtranslate(text.slice(0, 1000), "ru");
-      if (translated && translated.length > 50) text = translated;
+      if (translated && translated.length > 50) { text = translated; translateOk = true; }
     }
   }
 
   const display = cutAtSentence(text, 600);
   const bodyNow = document.getElementById("expand-body-" + cardId);
   if (bodyNow) {
-    const badge = (isWestern || (text && isTextEnglish(text)))
+    // Badge now reflects what ACTUALLY happened — was mis-shown as "translated"
+    // before even when gtranslate() silently failed and left the original
+    // English text in place.
+    const badge = translateOk
       ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
            <span style="font-size:13px">🌐</span> Переведено с английского · 
            <a href="${(card.raw||[{link:card.link}])[0].link}" target="_blank" 
               style="color:var(--accent2);text-decoration:none" 
               onclick="event.stopPropagation()">оригинал</a>
          </div>`
-      : "";
+      : needsTranslation
+        ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+             <span style="font-size:13px">🌐</span> Перевод не удался — показан оригинал на английском
+           </div>`
+        : "";
     bodyNow.innerHTML = badge + renderTextHTML(display, false, false);
   }
 }
