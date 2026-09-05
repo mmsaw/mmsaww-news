@@ -2244,9 +2244,13 @@ async function translateCards(cards, targetLang, apiKey) {
   state.translating = true;
   renderStatusBar();
 
-  // Google Translate first (free, no key needed), gpt-oss as fallback per
-  // string when Google fails even after its own retry — keeps translation
-  // working through Google rate-limit spikes instead of silently giving up.
+  // Groq (gpt-oss) is the PRIMARY translator when a key is present — this is
+  // the exact same reliable path already used for full-article summaries
+  // (which the user confirmed works consistently). Google Translate's
+  // undocumented "gtx" endpoint goes here only as a fallback: for users
+  // without a Groq key, or on the rare case Groq itself is unavailable.
+  // This was flipped from Google-first because Google was the unreliable
+  // half of the pair — headlines are exactly what kept failing.
   //
   // Each finished card is patched into the DOM individually (patchCardTitle)
   // instead of triggering a full renderContent() rebuild. Translation can be
@@ -2254,16 +2258,19 @@ async function translateCards(cards, targetLang, apiKey) {
   // grid rebuild on every little bit of progress is what looked like a
   // "refresh every few seconds" while reading. Patching one <h3> at a time
   // is invisible: no flicker, no scroll jump, no replayed animation.
-  const CONCURRENT = 3; // gentler pace — fewer simultaneous hits to Google's endpoint
+  const CONCURRENT = 3;
   for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
     const batch = toTranslate.slice(i, i + CONCURRENT);
     await Promise.all(batch.map(async card => {
-      let [t, s] = await Promise.all([
-        gtranslate(card.title, targetLang),
-        gtranslate(card.summary, targetLang),
-      ]);
-      if (!t) t = await groqTranslate(card.title, targetLang);
-      if (!s) s = await groqTranslate(card.summary, targetLang);
+      let t = null, s = null;
+      if (state.groqKey) {
+        [t, s] = await Promise.all([
+          groqTranslate(card.title, targetLang),
+          groqTranslate(card.summary, targetLang),
+        ]);
+      }
+      if (!t) t = await gtranslate(card.title, targetLang);
+      if (!s) s = await gtranslate(card.summary, targetLang);
       if (t) card[fieldT] = t;
       if (s) card[fieldS] = s;
       if (t || s) patchCardTitle(card);
@@ -3572,6 +3579,23 @@ async function fetchArticleText(url) {
       jinaHeaders["X-Target-Selector"] = ".wysiwyg, .article-p-wrapper, [class*=ArticleBody]";
     } else if (url.includes("mosday.ru")) {
       jinaHeaders["X-Target-Selector"] = ".news-text, .article-text, article";
+    } else if (url.includes("politico.")) {
+      jinaHeaders["X-Target-Selector"] = ".story-text, [class*=story-body], article";
+      jinaHeaders["X-Remove-Selector"] = ".summary-box, .newsletter, footer, nav, .related";
+    } else if (url.includes("apnews.com")) {
+      jinaHeaders["X-Target-Selector"] = ".RichTextStoryBody, [class*=RichTextBody], article";
+    } else if (url.includes("rbc.ru")) {
+      jinaHeaders["X-Target-Selector"] = ".article__text, [class*=article-text], article";
+      jinaHeaders["X-Remove-Selector"] = ".article__inline-item, .banner, footer, nav";
+    } else if (url.includes("habr.com")) {
+      jinaHeaders["X-Target-Selector"] = ".tm-article-body, [class*=article-body], article";
+    } else {
+      // Generic fallback for anything unmatched — including Reuters/AP/Forbes
+      // links that arrive as opaque Google News redirect URLs (so the
+      // domain-based checks above never match the string itself even though
+      // Jina still follows the redirect and scrapes the real page).
+      jinaHeaders["X-Target-Selector"] = "article, [role=article], [itemprop=articleBody], [class*=article-body i], [class*=articleBody i], main";
+      jinaHeaders["X-Remove-Selector"] = "footer, nav, aside, .related, .newsletter, .subscribe, .cookie";
     }
     const res = await fetch("https://r.jina.ai/" + url, {
       headers: jinaHeaders,
@@ -3694,15 +3718,20 @@ function cutAtSentence(text, maxChars) {
 async function generateAISummary(card, bodyEl, cardId) {
   const links = [...new Set((card.raw||[]).map(r=>r.link).filter(Boolean))];
 
-  // Speed: skip Jina if RSS already rich, else try only 1 link (not 3)
+  // Speed: skip Jina if RSS already rich. Otherwise try up to 2 links (not
+  // just the first) — a merged/grouped card can combine sources where one
+  // link extracts poorly (e.g. a Google-News-redirect link with weak
+  // boilerplate) while another link for the SAME story would have worked
+  // fine. Trying only links[0] meant one bad source could sink an otherwise
+  // perfectly summarizable story.
   const _rssRaw = (card.raw||[]).map(r=>decodeEntities(r.description||"")).join(" ").replace(/<[^>]+>/g,"");
-  let fetched_single = null;
-  if (_rssRaw.length < 300 && links.length) fetched_single = await fetchArticleText(links[0]);
-
-  // Fake the allSettled shape so rest of code works unchanged
-  const fetched = links.slice(0,3).map((_, i) => i===0 && fetched_single
-    ? {status:"fulfilled", value: fetched_single}
-    : {status:"rejected"});
+  const fetched = links.slice(0,3).map(() => ({status:"rejected"}));
+  if (_rssRaw.length < 300 && links.length) {
+    for (let i = 0; i < Math.min(2, links.length); i++) {
+      const text = await fetchArticleText(links[i]);
+      if (text && text.length > 150) { fetched[i] = {status:"fulfilled", value: text}; break; }
+    }
+  }
 
   const articleParts = [];
   links.slice(0, 3).forEach((link, i) => {
