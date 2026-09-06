@@ -306,8 +306,15 @@ async function fetchSource(src) {
 }
 
 // ─── Groq helpers ──────────────────────────────────────────────────────────
-async function groqFetch(body, timeout = 20000) {
-  for (let attempt = 0; attempt < 4; attempt++) {
+async function groqFetch(body, timeout = 20000, patient = false) {
+  // "patient" mode (long backoff, more attempts) is ONLY for calls with no
+  // fallback and low volume (the 5 daily digests) — worth waiting for.
+  // Default (fast-fail) mode is for high-volume calls (100+ translations,
+  // dozens of categorize batches) that have a cheap fallback (Google
+  // Translate / regex) — waiting 8-24s per retry there was stalling the
+  // whole run for many minutes instead of just falling back quickly.
+  const maxAttempts = patient ? 4 : 2;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const res = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -315,16 +322,16 @@ async function groqFetch(body, timeout = 20000) {
         body: JSON.stringify(body),
       }, timeout);
       if (res.status === 429) {
-        // This is a scheduled background job, not a live user request — no
-        // reason to give up quickly. Back off longer each attempt instead
-        // of the single 4s retry that was enough for the live client but
-        // not for a run that's already made hundreds of calls this minute.
-        if (attempt < 3) { await new Promise(r => setTimeout(r, 8000 * (attempt + 1))); continue; }
+        if (attempt < maxAttempts - 1) {
+          const delay = patient ? 8000 * (attempt + 1) : 4000;
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
         return null;
       }
       if (!res.ok) return null;
       return await res.json();
-    } catch { if (attempt < 3) { await new Promise(r => setTimeout(r, 3000)); continue; } return null; }
+    } catch { if (attempt < maxAttempts - 1) { await new Promise(r => setTimeout(r, patient ? 3000 : 2000)); continue; } return null; }
   }
   return null;
 }
@@ -412,7 +419,7 @@ async function groqComplete(prompt, maxTokens = 900) {
   const d = await groqFetch({
     model: "openai/gpt-oss-120b", max_tokens: maxTokens, reasoning_effort: "low",
     messages: [{ role: "user", content: prompt }],
-  }, 25000);
+  }, 25000, true);
   return d?.choices?.[0]?.message?.content?.trim() || null;
 }
 
