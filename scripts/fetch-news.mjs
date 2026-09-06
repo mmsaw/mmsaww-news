@@ -403,12 +403,16 @@ async function groqTranslate(text, targetLang) {
   return d?.choices?.[0]?.message?.content?.trim() || null;
 }
 
-async function gtranslate(text, targetLang) {
+async function gtranslate(text, targetLang, attempt = 0) {
   if (!text) return null;
   const sl = targetLang === "ru" ? "en" : "ru";
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text.slice(0,1000))}`;
     const res = await fetchWithTimeout(url, {}, 8000);
+    if (res.status === 429 && attempt < 1) {
+      await new Promise(r => setTimeout(r, 1200));
+      return gtranslate(text, targetLang, attempt + 1);
+    }
     if (!res.ok) return null;
     const data = await res.json();
     return (data[0]||[]).map(c => c[0]||"").join("") || null;
@@ -584,15 +588,18 @@ async function main() {
   // retried every run — including ones that already scrolled out of the
   // source's live RSS feed and would otherwise never get a second attempt.
   const toTranslate = merged.filter(c => c.needsTranslation && !c.title_ru);
-  const TR_CONCURRENT = 3;
+  const TR_CONCURRENT = 5;
   for (let i = 0; i < toTranslate.length; i += TR_CONCURRENT) {
     const batch = toTranslate.slice(i, i + TR_CONCURRENT);
     await Promise.all(batch.map(async card => {
-      let t = await groqTranslate(card.title, "ru");
-      if (!t) t = await gtranslate(card.title, "ru");
+      // Google first — it's free, fast (~request), and doesn't compete with
+      // categorization/digests for Groq's limited per-minute quota. Groq
+      // only picks up whatever Google couldn't handle.
+      let t = await gtranslate(card.title, "ru");
+      if (!t) t = await groqTranslate(card.title, "ru");
       if (t) card.title_ru = t;
-      let s = await groqTranslate(card.description, "ru");
-      if (!s) s = await gtranslate(card.description, "ru");
+      let s = await gtranslate(card.description, "ru");
+      if (!s) s = await groqTranslate(card.description, "ru");
       if (s) card.description_ru = s;
     }));
   }
