@@ -827,7 +827,7 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
       <div class="logo">MMSAWW NEWS</div>
       <span class="logo-sub">Персональный агрегатор</span>
     </div>
-    <button class="refresh-hdr-btn" id="refresh-hdr-btn" onclick="loadAll()" title="Обновить новости">
+    <button class="refresh-hdr-btn" id="refresh-hdr-btn" onclick="loadNews()" title="Обновить новости">
       <span id="refresh-hdr-icon">↻</span>
     </button>
     <div class="hdr-right">
@@ -860,9 +860,6 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
     </div>
 
 
-  </div>
-  <div class="fbar" id="fbar">
-    <button class="clear-cache-btn" onclick="if(confirm('Очистить кэш новостей?'))clearStoredCards()" title="Удалить сохранённые новости">🗑 Кэш</button>
   </div>
 </header>
 
@@ -937,15 +934,7 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
 </div>
 
 
-<!-- BLOOMBERG WIDGET -->
-<div class="blmb-wrap" id="blmb-wrap" style="display:none">
-  <div class="blmb-head" onclick="toggleBloomberg()">
-    <span class="blmb-logo">Bloomberg</span>
-    <span class="blmb-count" id="blmb-count"></span>
-    <span class="blmb-chevron" id="blmb-chevron">▸</span>
-  </div>
-  <div class="blmb-body" id="blmb-body" style="display:none"></div>
-</div>
+
 
 <!-- SIRI AI WIDGET -->
 <div class="siri-wrap idle" id="siri-wrap" style="display:none">
@@ -1007,183 +996,13 @@ const CATEGORIES = [
   { id:"local",       label:"Ярославль & Москва", color:"#60a5fa" },
 ];
 
-const SOURCES = [
-  // ── Российские федеральные ────────────────────────────────────────────────
-  {
-    urls: [
-      "JINA:https://www.kommersant.ru/",
-      // Second Jina entry point — confirmed live "лента" page with proper
-      // headline links, gives a genuinely different render pass through the
-      // one channel (Jina) that's proven reliable when the CORS-proxy pool
-      // is congested or blocked on the user's network
-      "JINA:https://www.kommersant.ru/lenta",
-      "https://www.kommersant.ru/RSS/news.xml",
-      "https://news.google.com/rss/search?q=site:kommersant.ru&hl=ru&gl=RU&ceid=RU:ru",
-      // Telegram mirror via RSSHub (official channel, 270K+ subs)
-      "https://rsshub.app/telegram/channel/kommersant/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      // Same Telegram channel, but scraped DIRECTLY via Jina instead of
-      // through RSSHub — RSSHub's public instance is itself a third-party
-      // service that can be down/rate-limited independently of Telegram or
-      // Kommersant. Reading t.me/s/<channel> (Telegram's own public preview
-      // page) through Jina removes that middleman entirely.
-      "JINA:https://t.me/s/kommersant",
-    ],
-    name:"Коммерсант", country:"ru"
-  },
-  {
-    urls: [
-      // Jina scrapes the Forbes RU news feed directly
-      "JINA:https://www.forbes.ru/",
-      "JINA:https://www.forbes.ru/novosti",
-      // RSS fallbacks
-      "https://www.forbes.ru/rss/news",
-      "https://www.forbes.ru/rss",
-      "https://news.google.com/rss/search?q=Forbes+Россия&hl=ru&gl=RU&ceid=RU:ru",
-      "https://rsshub.app/telegram/channel/forbesrussia/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0", // fixed: real handle has no underscore
-      // Same channel, scraped directly via Jina — bypasses RSSHub as a
-      // separate point of failure (see Коммерсант for the same reasoning)
-      "JINA:https://t.me/s/forbesrussia",
-    ],
-    name:"Forbes RU", country:"ru"
-  },
-  // ── Финансовые ────────────────────────────────────────────────────────────
-  {
-    urls: [
-      // Jina scrapes Frank Media directly
-      "JINA:https://frankmedia.ru/",
-      "JINA:https://frankmedia.ru/news",
-      // RSS + Telegram fallbacks
-      "https://frankmedia.ru/feed",
-      "https://frankrg.com/feed",
-      "https://rsshub.app/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://rsshub.rssforever.com/telegram/channel/frank_media/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-      "https://news.google.com/rss/search?q=site:frankmedia.ru&hl=ru&gl=RU&ceid=RU:ru",
-    ],
-    name:"Frank Media", country:"ru"
-  },
-  {
-    urls: [
-      // Jina scrapes Banki.ru news feed directly
-      "JINA:https://www.banki.ru/news/lenta/",
-      // RSS fallbacks
-      "https://www.banki.ru/news/rss/",
-      "https://www.banki.ru/news/latest/rss/",
-      "https://news.google.com/rss/search?q=site:banki.ru+банк&hl=ru&gl=RU&ceid=RU:ru",
-      "https://rsshub.app/telegram/channel/bankiru_news/includeFwd=0&includeServiceMsg=0&includeUnsupportedMsg=0",
-    ],
-    name:"Banki.ru", country:"ru"
-  },
-  {
-    urls: [
-      // RBC — official RSS export, was previously miscategorized under Banki.ru
-      "JINA:https://www.rbc.ru/short_news/",
-      "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
-      "https://news.google.com/rss/search?q=site:rbc.ru&hl=ru&gl=RU&ceid=RU:ru",
-    ],
-    name:"РБК", country:"ru"
-  },
-  // ── Западные ─────────────────────────────────────────────────────────────
-  {
-    urls: [
-      "JINA:https://www.bbc.com/news",
-      "https://feeds.bbci.co.uk/news/world/rss.xml",
-      "https://feeds.bbci.co.uk/news/rss.xml?edition=int",
-      "https://feeds.bbci.co.uk/news/rss.xml",
-      "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:bbc.com/news&hl=en&gl=GB&ceid=GB:en",
-    ],
-    name:"BBC", country:"west"
-  },
-  {
-    urls: [
-      "JINA:https://www.aljazeera.com/",
-      "https://www.aljazeera.com/xml/rss/all.xml",
-      "https://www.aljazeera.com/xml/rss/world.xml",
-      "https://www.aljazeera.com/xml/rss/middleeast.xml",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:aljazeera.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Al Jazeera", country:"west"
-  },
-  {
-    urls: [
-      "JINA:https://www.politico.com/",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:politico.com&hl=en&gl=US&ceid=US:en",
-      "https://www.politico.eu/feed/",
-    ],
-    name:"Politico", country:"west", maxAgeDays:2
-  },
-  {
-    urls: [
-      "JINA:https://www.reuters.com/world/",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:reuters.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"Reuters", country:"west", maxAgeDays:2
-  },
-  {
-    urls: [
-      "JINA:https://apnews.com/",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=when:2d+allinurl:apnews.com&hl=en&gl=US&ceid=US:en",
-    ],
-    name:"AP", country:"west", maxAgeDays:2
-  },
-  {
-    urls: [
-      "JINA:https://habr.com/ru/all/",
-      "https://habr.com/ru/rss/all/all/",
-      "https://news.google.com/rss/search?q=when:1d+allinurl:habr.com&hl=ru&gl=RU&ceid=RU:ru",
-    ],
-    name:"Habr", country:"ru", forceCat:"tech"
-  },
 
-  // ── Локальные ─────────────────────────────────────────────────────────────
-  {
-    urls: [
-      // Jina scrapes 76.ru directly
-      "JINA:https://76.ru/",
-      "JINA:https://76.ru/text/gorod/",
-      // RSS + aggregator fallbacks
-      "https://76.ru/rss/",
-      "https://76.ru/rss/all",
-      "https://news.yandex.ru/yaroslavl.rss",
-      "https://yarnovosti.ru/rss/",
-      "https://news.google.com/rss/search?q=Ярославль+новости&hl=ru&gl=RU&ceid=RU:ru",
-    ],
-    name:"Ярославль", country:"ru", tag:"Ярославль"
-  },
-  {
-    urls: [
-      // Jina scrapes m24.ru and mos.ru directly
-      "JINA:https://www.m24.ru/",
-      "JINA:https://www.mos.ru/news/",
-      // RSS fallbacks
-      "https://www.m24.ru/rss.xml",
-      "https://news.yandex.ru/moscow.rss",
-      "https://www.mos.ru/rss/",
-      "https://mosday.ru/news/rss.xml",
-      "https://news.google.com/rss/search?q=Москва+мэрия+OR+транспорт+OR+ЖКХ&hl=ru&gl=RU&ceid=RU:ru",
-    ],
-    name:"Москва", country:"ru", tag:"Москва"
-  },
-];
 
 // CORS proxies — tried in order until one works
 // Two types of proxies:
 // TYPE "cors"     — returns raw RSS XML
 // TYPE "rss2json" — rss2json.com fetches feed server-side (bypasses UA blocks)
-const PROXIES = [
-  // corsproxy.io now restricts its free tier to localhost/dev only (since
-  // ~Feb 2026) — it silently rejects requests from real deployed sites like
-  // this one, so it was a guaranteed dead slot in every rotation. Swapped
-  // for killcors.com, a currently-working corsproxy.io-compatible service.
-  { type:"cors",     fn: url => `https://proxy.killcors.com/?url=${encodeURIComponent(url)}`         },
-  { type:"rss2json", fn: url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=50` },
-  { type:"cors",     fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`      },
-  { type:"cors",     fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
-  { type:"cors",     fn: url => `https://thingproxy.freeboard.io/fetch/${url}`                       },
-];
+
 
 // ── Global concurrency limiters ─────────────────────────────────────────────
 // With Jina + RSS racing in parallel PER SOURCE (see fetchSource), firing all
@@ -1194,24 +1013,12 @@ const PROXIES = [
 // These limiters cap how many requests are in-flight to each proxy family at
 // once — extra requests queue and run as slots free up, rather than racing
 // all of them into the proxy's face simultaneously.
-function createLimiter(maxConcurrent) {
-  let active = 0;
-  const queue = [];
-  function pump() {
-    if (active >= maxConcurrent || queue.length === 0) return;
-    active++;
-    const { fn, resolve, reject } = queue.shift();
-    fn().then(resolve, reject).finally(() => { active--; pump(); });
-  }
-  return fn => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); pump(); });
-}
+
 // Per-proxy-service limiters (not one shared bucket) — each of the 5 proxy
 // services gets its own concurrency cap, so total throughput scales with the
 // number of services while no single one ever gets slammed. This roughly
 // doubles overall fetch speed vs one flat global cap, without reintroducing
 // the earlier burst-overload problem (each service still individually capped).
-PROXIES.forEach(p => { p.limiter = createLimiter(6); }); // max 6 concurrent per proxy service
-const jinaLimiter = createLimiter(8);  // max 8 concurrent r.jina.ai calls app-wide (raised: now used by all 13 sources as a fallback, not just 5)
 
 
 
@@ -1250,18 +1057,14 @@ let state = {
   entityFilter: null,     // set when the user taps a 🔖 topic chip — shows cross-time timeline
   savedOnly: false,       // "★ Сохранённые" quick filter
   lang: "ru",            // "ru" | "en"
-  srcStatus: {},
-  srcError: {},          // name → last error reason (for tooltip)
   loading: false,
-  classifying: false,
-  translating: false,
+  loadError: null,       // set if fetching data/news.json fails
   sentimentModel: "groq",
   groqKey: "",
   sentimentDone: false,
-  synthCount: 0,
-  synthTotal: 0,
+  digests: {},           // pre-computed server-side, keyed by category id ("all", "geopolitics", ...)
+  dataGeneratedAt: null, // when the server last collected news
   lastUpdated: null,
-  runId: 0,
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1283,124 +1086,22 @@ function formatTime(d) {
 
 // ── FALLBACK keyword rules (used when no API key) ───────────────────────────
 // Strict: each category has explicit EXCLUDE patterns too
-const KW = {
-  // Geopolitics: ALL international/military/political
-  geopolitics: {
-    include: /украин|ukraine|зсу|всу|обстрел|наступлен|фронт|донецк|луганск|харьков|запорожье|херсон|донбасс|бахмут|zelenskyy|зеленськ|ceasefire|перемир|иран|iran|израил|israel|газа|gaza|хамас|хезболл|хуситы|houthi|китай|china|сша|США|\busa\b|трамп|trump|байден|biden|нато|nato|ООН|\bun\b|g7|g20|макрон|macron|шольц|scholz|мид\b|госдеп|дипломат|посольств|саммит|summit|договор|treaty|санкц|военн.*операц|спецоперац|северн.*коре|north korea|тайван|taiwan|сирия|syria|йемен|yemen|талиб|taliban|пакистан|pakistan|ракетн.*удар|авиаудар|бомбардир|беженц|переговоры.*мир|мирн.*переговоры/i,
-    exclude: /курс.*рубл|рубль.*курс|биржа открыл|инфляц.*%|ВВП.*вырос|gdp.*growth|\bipo\b|акци.*упал|прибыл.*компани|chatgpt|нейросет|смартфон.*выпуск|квартальн.*отчет|выручк.*млрд/i,
-  },
-  // Finance: markets, economy, crypto
-  finance: {
-    include: /рубль|доллар|евро\b|dollar|euro\b|биржа|инфляц|ВВП|gdp|цент.*банк|ЦБ\b|фрс\b|\bfed\b|акци|stock|нефть|brent|\bwti\b|газ.*цен|цен.*газ|рынок|market|банк.*отчет|инвест|крипт|crypto|биткоин|bitcoin|\bbtc\b|ethereum|\beth\b|defi|nft\b|binance|coinbase|solana|halving|staking|майнинг|ключев.*ставк|процент.*ставк|облигац|пошлин|tariff|сделк.*млрд|слияни|поглощени|\bipo\b|мвф|imf|бюджет.*дефицит|форекс|фьючерс|прибыл.*млрд|выручк|финанс.*отчет|квартальн.*результ/i,
-    exclude: /военн.*операц|ракетн.*удар|фронт|обстрел.*жертв|авиаудар|переговоры.*мир/i,
-  },
-  // Tech: AI, hardware, startups, cyber, biotech
-  tech: {
-    include: /искусств.*интеллект|нейросет|chatgpt|openai|anthropic|deepseek|gemini|llm|\bgpt\b|\bии\b|\bai\b|кибератак|хакер|утечка данных|data breach|кибербезопасност|квантов|tesla|spacex|starlink|nvidia|intel|amd|apple.*выпуст|microsoft|google.*продукт|meta\b.*функц|amazon.*технолог|alibaba|huawei|samsung.*модел|робот|беспилотн.*аппарат|стартап|startup|венчур|биотех|biotech|полупроводник|semiconductor|смартфон.*выпуск|электромобил|электрокар|\b5g\b|\b6g\b/i,
-    exclude: /украин|фронт|обстрел|военн.*операц/i,
-  },
-  // Lifestyle: catch-all
-  lifestyle: {
-    include: /.*/,
-    exclude: /^$/,
-  },
-};
+
 
 // ── FALLBACK categorizer (no API key) ───────────────────────────────────────
 // "local" is NEVER assigned here — only tag-based sources can ever be local
-function categorizeFallback(title, desc) {
-  const t = (title + " " + desc).toLowerCase();
-  if (KW.geopolitics.include.test(t) && !KW.geopolitics.exclude.test(t)) return "geopolitics";
-  if (KW.finance.include.test(t)     && !KW.finance.exclude.test(t))     return "finance";
-  if (KW.tech.include.test(t)        && !KW.tech.exclude.test(t))        return "tech";
-  return "lifestyle";  // sport, culture, crime, health — everything else
-}
+
 
 // ── AI BATCH CATEGORIZER ─────────────────────────────────────────────────────
 // RULE: "local" is NOT in AI output — local category is 100% source-gated
-const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи:
-1. Категорию — одну из четырёх:
-"geopolitics"  — ВСЁ военное и политическое: Украина, Иран, Израиль, Китай, США, НАТО, ООН, санкции, войны, конфликты, дипломатия, выборы мировых лидеров.
-"finance"      — экономика и деньги: биржи, курсы валют, ЦБ, ставки, нефть/газ как товар, отчёты компаний, крипто, сделки M&A, тарифы, ВВП, инфляция.
-"tech"         — технологии: ИИ, ПО, железо, стартапы, кибербезопасность, космос, электромобили, биотех.
-"lifestyle"    — всё остальное: спорт, культура, криминал, здоровье, общество, люди, погода, ДТП, ЖКХ.
 
-2. Тему (ent) — 1-3 слова, главный субъект новости для группировки похожих новостей: имя человека, страна, компания, событие.
-Примеры: "Иран", "ФРС", "Трамп", "Nvidia", "выборы в Молдове". Если явного субъекта нет — пустая строка.
-
-Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
-[{"i":0,"cat":"finance","ent":"ФРС"},{"i":1,"cat":"lifestyle","ent":""},...]`;
 
 // Classify a batch of headlines via Groq (fast + cheap gpt-oss-20b).
 // Uses the same groqKey already required for the daily summary — no extra
 // key needed. Falls back to regex classifier per-item if Groq fails.
-async function classifyBatchGroq(items, key) {
-  const lines = items.map((it, i) =>
-    `${i}. [${it.sourceName}] ${it.title}: ${(it.description||"").slice(0, 130)}`
-  ).join("\n");
-  const d = await groqFetch({
-    model: "openai/gpt-oss-20b",
-    max_tokens: 2000,
-    reasoning_effort: "low",
-    messages: [
-      { role: "system", content: CAT_PROMPT },
-      { role: "user", content: "Статьи:\n" + lines }
-    ],
-  }, key, 20000);
-  if (!d) return null;
-  const text = d.choices?.[0]?.message?.content || "";
-  const m = text.match(/\[[\s\S]*?\]/);
-  if (!m) return null;
-  try { return JSON.parse(m[0]); } catch { return null; }
-}
 
-async function categorizeWithAI(rawItems, groqKey) {
-  // ── STEP 1: local items come ONLY from tagged sources, never from AI ──────
-  const localItems    = rawItems.filter(it => it.tag);    // Ярославль + Москва only
-  // Sources with forceCat (e.g. Habr → tech) are already classified — skip AI for them too
-  const preClassified = rawItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
-  const nonLocalItems = rawItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
 
-  const BATCH = 30;
-  const catMap = {};
-  const entMap = {};
 
-  // Batches are independent requests — fire them all in parallel instead of
-  // awaiting one at a time. With ~100 items / batch 30 = ~4 batches, this
-  // turns "4x round-trip time" into "~1x round-trip time" (bounded by the
-  // slowest single batch, not the sum of all of them).
-  const batches = [];
-  for (let i = 0; i < nonLocalItems.length; i += BATCH) {
-    batches.push({ offset: i, items: nonLocalItems.slice(i, i + BATCH) });
-  }
-
-  await Promise.all(batches.map(async ({ offset, items }) => {
-    const result = await classifyBatchGroq(items, groqKey);
-    if (result) {
-      result.forEach(r => {
-        if (typeof r.i === "number" && r.cat) {
-          catMap[offset + r.i] = r.cat;
-          if (r.ent && typeof r.ent === "string" && r.ent.trim()) entMap[offset + r.i] = r.ent.trim();
-        }
-      });
-    }
-    // Fill any gaps (missing indices, or Groq unavailable) with regex fallback
-    items.forEach((it, bi) => {
-      const idx = offset + bi;
-      if (!catMap[idx]) catMap[idx] = categorizeFallback(it.title, it.description);
-    });
-  }));
-
-  const classified = nonLocalItems.map((it, idx) => {
-    const cat = catMap[idx];
-    // Hard block: if AI somehow returns "local" — discard entirely
-    if (!cat || cat === "local") return null;
-    return { ...it, cat, entity: entMap[idx] || null };
-  }).filter(Boolean);
-
-  // ── STEP 2: local + pre-classified items are returned as-is, never re-run ─
-  return [...localItems, ...preClassified, ...classified];
-}
 
 // ═══════════════════════════════════════════════════════════
 // LOCAL CONTENT FILTER
@@ -1408,250 +1109,45 @@ async function categorizeWithAI(rawItems, groqKey) {
 
 // Words that signal the article is NOT a local city story
 // Only block clearly international/war topics — not generic federal words
-const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|иран|iran|израил|israel|газа|хамас|хуситы|ракетн.*удар|авиаудар|биткоин|bitcoin|brent/i;
 
 // Words that confirm article IS about the city
-const YAROSLAVL_KW = /ярославл|ярослав|ярославск|рыбинск|углич|переславл|тутаев|ростов велик/i;
-const MOSCOW_KW    = /москв|московск|мэрия|собянин|mos\.ru|троицк|зеленоград|новая москва/i;
 
-function isLocalArticle(title, desc, tag) {
-  const t = (title + " " + desc).toLowerCase();
 
-  // Reject if clearly national/international topic
-  if (NATIONAL_KW.test(t)) return false;
-
-  // Must mention the city name (or nearby cities)
-  if (tag === "Ярославль") return YAROSLAVL_KW.test(t);
-  if (tag === "Москва")    return MOSCOW_KW.test(t);
-
-  return false; // unknown tag → discard
-}
 
 // ═══════════════════════════════════════════════════════════
 // RSS FETCH WITH PROXY FALLBACK
 // ═══════════════════════════════════════════════════════════
 
 // Try ONE proxy+url combo — returns xml string or null
-async function tryOne(proxyObj, sourceUrl, timeout) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), timeout);
-  try {
-    const res = await fetch(proxyObj.fn(sourceUrl), { signal: ctrl.signal });
-    clearTimeout(tid);
-    if (!res.ok) throw new Error("HTTP " + res.status);
 
-    if (proxyObj.type === "rss2json") {
-      const json = await res.json();
-      if (json.status !== "ok" || !json.items?.length) throw new Error("пустой json");
-      const xmlItems = json.items.map(it => `<item><title><![CDATA[${it.title||""}]]></title><description><![CDATA[${it.description||it.content||""}]]></description><link>${it.link||""}</link><pubDate>${it.pubDate||""}</pubDate></item>`).join("");
-      return `<?xml version="1.0"?><rss><channel>${xmlItems}</channel></rss>`;
-    }
-
-    const ct   = res.headers.get("content-type") || "";
-    const text = ct.includes("json") ? (await res.json()).contents || "" : await res.text();
-    if (!text || text.length <= 100) throw new Error("пустой ответ");
-    return text;
-  } catch (e) {
-    clearTimeout(tid);
-    // Distinguish an aborted/timed-out request from a genuine network/CORS
-    // failure — "Failed to fetch" is what browsers throw when a request is
-    // blocked outright (ad-blocker, DNS filter, carrier firewall), which
-    // reads very differently to a user than a plain timeout.
-    if (e?.name === "AbortError") throw new Error("таймаут");
-    throw new Error(e?.message || "сеть недоступна");
-  }
-}
 
 // Heuristic: many RU news sites embed the publish date in the URL path
 // (e.g. /2026/03/03/article-slug or /2026-03-03-article). Extract it when
 // present — much more accurate than Jina's synthetic "spread over time" dates.
-function extractDateFromUrl(url) {
-  const m = url.match(/\/(20\d{2})[\/\-](\d{2})[\/\-](\d{2})(?:[\/\-]|$)/);
-  if (!m) return null;
-  const [, y, mo, d] = m;
-  const mi = parseInt(mo,10), di = parseInt(d,10);
-  if (mi < 1 || mi > 12 || di < 1 || di > 31) return null;
-  const dt = new Date(`${y}-${mo}-${d}T12:00:00`);
-  if (isNaN(dt.getTime())) return null;
-  if (dt.getTime() > Date.now() + 86400000) return null; // reject future dates
-  if (dt.getTime() < Date.now() - 30*86400000) return null; // reject >30d old (false positives)
-  return dt;
-}
+
 
 // Fetch one Jina target — returns items[] or throws
-async function fetchJinaOne(targetUrl, src, timeout) {
-  const res = await Promise.race([
-    fetch("https://r.jina.ai/" + targetUrl, {
-      headers: { "X-Timeout": "15", "Accept": "text/plain", "X-Return-Format": "markdown" }
-    }),
-    new Promise((_,r) => setTimeout(() => r(new Error("timeout")), timeout))
-  ]);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const text = await res.text();
-  const items = parseJinaMarkdown(text, src, targetUrl);
-  if (items.length < 3) throw new Error("мало статей (" + items.length + ")");
-  return items;
-}
+
 
 // Parse Jina markdown response into article items
-function parseJinaMarkdown(text, src, targetUrl) {
-  const domain = new URL(targetUrl).hostname.replace("www.", "");
-  const out = [];
-  const seen = new Set();
-  // Negative lookbehind excludes markdown IMAGE syntax ![alt](url) — without
-  // it, an image caption like "![Image 2: Trump speaks...]" was matching the
-  // same [text](url) pattern as a real headline link and leaking straight
-  // into the title.
-  const linkRe = /(?<!!)\[([^\]]{15,200})\]\((https?:\/\/[^)]+)\)/g;
-  let m;
-  while ((m = linkRe.exec(text)) !== null && out.length < 30) {
-    const [, rawTitle, link] = m;
-    try { if (!new URL(link).hostname.includes(domain)) continue; } catch { continue; }
-    const title = rawTitle
-      .replace(/\s+/g, " ")
-      // Strip "most read" rank-number + markdown-heading artifacts that
-      // leak through when Jina linearizes nested widgets, e.g. a BBC
-      // "5\n\n## Watch: Trump..." block collapses to "5 ## Watch: Trump..."
-      .replace(/^\d{1,2}\s*#{1,6}\s*/, "")
-      .replace(/^#{1,6}\s*/, "")
-      .trim();
-    if (title.length < 20) continue;
-    if (seen.has(link)) continue;
-    if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
-    seen.add(link);
-    // Prefer a real date parsed from the URL; fall back to synthetic spacing
-    const date = extractDateFromUrl(link) || new Date(Date.now() - out.length * 16 * 60000);
-    out.push({
-      title: title, description: title, link, date,
-      cat: src.forceCat || "pending",
-      sourceName: src.name, sourceCountry: src.country,
-      tag: src.tag || null, isTg: false
-    });
-  }
-  return out;
-}
+
 
 // Parse RSS/Atom XML into article items
-function parseRSSXML(xml, src) {
-  const doc  = new DOMParser().parseFromString(xml, "text/xml");
-  const els  = doc.querySelectorAll("item, entry");
-  const out  = [];
-  let idx = 0;
-  els.forEach(el => {
-    if (idx++ >= 50) return;
-    const title = strip(cdata(el.querySelector("title")?.textContent));
-    const desc  = strip(cdata(
-      el.querySelector("description")?.textContent ||
-      el.querySelector("content")?.textContent || ""
-    )).slice(0,350);
-    const link  = (el.querySelector("link")?.textContent?.trim() ||
-                   el.querySelector("link")?.getAttribute("href") || "").trim();
-    const rawDate = el.querySelector("pubDate,published,updated")?.textContent;
-    const date = rawDate ? new Date(rawDate) : (extractDateFromUrl(link) || new Date());
-    if (!title || title.length < 5) return;
-    if (src.tag) {
-      const t = (title + " " + desc).toLowerCase();
-      if (NATIONAL_KW.test(t)) return;
-    }
-    const cat = src.tag ? "local" : (src.forceCat || "pending");
-    if (src.maxAgeDays) {
-      const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
-      if (Date.now() - date.getTime() > maxMs) return;
-    }
-    out.push({ title, description:desc, link, date, cat,
-      sourceName:src.name, sourceCountry:src.country, tag:src.tag||null });
-  });
-  return out;
-}
+
 
 // Fetch source: races Jina scraping AND RSS proxies TOGETHER — whichever
 // strategy responds first wins (fast path unchanged from before). If ALL
 // attempts fail, collects the individual failure reasons for diagnostics
 // (shown as a tooltip on the source pill in the filter bar).
-async function fetchSource(src) {
-  const urlList = src.urls || [src.url];
-  const jinaUrls = urlList.filter(u => u.startsWith("JINA:")).map(u => u.slice(5));
-  const rssUrls  = urlList.filter(u => !u.startsWith("JINA:"));
-  const TIMEOUT = 6500;
 
-  const attempts = [];
-
-  // Jina attempts — throttled through the shared jinaLimiter so N sources
-  // firing at once don't slam r.jina.ai with a burst
-  jinaUrls.forEach(u => {
-    attempts.push(
-      jinaLimiter(() => fetchJinaOne(u, src, 6500))
-        .catch(e => Promise.reject("Jina: " + (e?.message || "ошибка")))
-    );
-  });
-
-  // RSS proxy attempts — each URL tries only 3 proxies (not all 5), rotating
-  // through the PROXIES array by url index so different urls exercise
-  // different proxy subsets. With 13 sources firing at once, trying every
-  // url against every proxy was generating 200+ simultaneous queued
-  // requests — most of them redundant, since 3 proxies per url is already
-  // safely redundant, and sources with multiple urls add further redundancy
-  // on top. This cuts total attempts by ~40% without giving up real coverage.
-  const PROXIES_PER_URL = 4;
-  rssUrls.forEach((u, ui) => {
-    for (let k = 0; k < PROXIES_PER_URL; k++) {
-      const proxy = PROXIES[(ui + k) % PROXIES.length];
-      attempts.push(
-        proxy.limiter(() => tryOne(proxy, u, TIMEOUT)).then(xml => {
-          if (!xml) throw new Error("нет ответа");
-          const items = parseRSSXML(xml, src);
-          if (!items.length) throw new Error("пустая лента");
-          return items;
-        }).catch(e => Promise.reject(proxy.type + ": " + (e?.message || "ошибка")))
-      );
-    }
-  });
-
-  if (!attempts.length) return { items: [], errors: ["источник не настроен"] };
-
-  try {
-    // Resolves as soon as the FIRST attempt succeeds — Jina and RSS still
-    // race concurrently, just capped by the limiters above
-    const items = await Promise.any(attempts);
-    return { items, errors: [] };
-  } catch (aggErr) {
-    // All attempts failed — AggregateError.errors holds every individual reason
-    const raw = (aggErr && aggErr.errors) ? aggErr.errors : [];
-    const errors = [...new Set(raw.map(String))].slice(0, 3);
-    return { items: [], errors: errors.length ? errors : ["все попытки не удались"] };
-  }
-}
 
 // ═══════════════════════════════════════════════════════════
 // DEDUP
 // ═══════════════════════════════════════════════════════════
 
-function tokenSet(s) {
-  const clean = s.toLowerCase()
-    .replace(/[«»""„‟]/g," ")
-    .replace(/[^а-яёa-z0-9]/gi," ")
-    .replace(/\b(сообщает|сообщил|заявил|рассказал|объявил|тасс|риа|reuters|bloomberg|afp)\b/g," ");
-  return new Set(clean.split(/\s+/).filter(w => w.length > 3));
-}
-function jaccard(a, b) {
-  const sa=tokenSet(a), sb=tokenSet(b);
-  let inter=0; sa.forEach(t=>{ if(sb.has(t)) inter++; });
-  const union=sa.size+sb.size-inter;
-  return union ? inter/union : 0;
-}
-function groupArticles(items) {
-  const groups=[], used=new Set();
-  for (let i=0; i<items.length; i++) {
-    if (used.has(i)) continue;
-    const g=[items[i]]; used.add(i);
-    for (let j=i+1; j<items.length; j++) {
-      if (used.has(j)) continue;
-      if (jaccard(items[i].title, items[j].title) >= 0.35) { g.push(items[j]); used.add(j); }
-    }
-    groups.push(g);
-  }
-  return groups;
-}
+
+
+
 
 // Second-pass dedup: Jaccard (above) only catches near-identical WORDING.
 // It misses paraphrased duplicates — e.g. "Трамп ввёл пошлины" vs "США повысили
@@ -1660,117 +1156,15 @@ function groupArticles(items) {
 // that describe the SAME real event, worded differently. Fails safe: any
 // error, timeout, or missing/invalid response just returns the original
 // Jaccard grouping untouched — this is a pure enhancement, never a regression.
-async function semanticMergeGroups(groups, groqKey) {
-  if (!groqKey || groups.length < 2 || groups.length > 60) return groups;
 
-  const reps = groups.map((g, i) => `${i}. ${(g[0].title_ru || g[0].title || "").slice(0,140)}`).join("\n");
-  const prompt = `Вот заголовки новостей одного раздела, каждый уже без явных дублей по словам.
-Некоторые всё ещё могут описывать ОДНО И ТО ЖЕ событие, но разными словами (разный источник, разная формулировка).
 
-Верни JSON-массив групп индексов: [[0,2],[1],[3,4,5]]
-Каждый индекс встречается РОВНО один раз. Объединяй ТОЛЬКО если это точно один и тот же информационный повод —
-не объединяй просто похожие темы или продолжающуюся историю с разными эпизодами.
 
-Заголовки:
-${reps}`;
-
-  try {
-    const d = await groqFetch({
-      model: "openai/gpt-oss-20b",
-      max_tokens: 1500,
-      reasoning_effort: "low",
-      messages: [{ role: "user", content: prompt }]
-    }, groqKey, 15000);
-    if (!d) return groups;
-    const text = d.choices?.[0]?.message?.content || "";
-    const m = text.match(/\[[\s\S]*?\]/);
-    if (!m) return groups;
-    const merged = JSON.parse(m[0]);
-    if (!Array.isArray(merged)) return groups;
-
-    const seen = new Set();
-    const result = [];
-    for (const idxArr of merged) {
-      if (!Array.isArray(idxArr)) continue;
-      const combined = [];
-      for (const gi of idxArr) {
-        if (typeof gi !== "number" || gi < 0 || gi >= groups.length || seen.has(gi)) continue;
-        seen.add(gi);
-        combined.push(...groups[gi]);
-      }
-      if (combined.length) result.push(combined);
-    }
-    // Any index the model missed → keep as its own standalone group (fail-safe)
-    groups.forEach((g, i) => { if (!seen.has(i)) result.push(g); });
-    return result.length ? result : groups;
-  } catch (e) {
-    return groups; // any failure → original Jaccard grouping stands
-  }
-}
-
-function makeCard(group) {
-  const p = group[0];
-  const sources = [...new Set(group.map(g=>g.sourceName))];
-  const ru   = group.filter(g=>g.sourceCountry==="ru");
-  const west = group.filter(g=>g.sourceCountry==="west");
-  // needsTranslation: card has at least one western article AND no Russian counterpart
-  const needsTranslation = west.length > 0 && ru.length === 0;
-  return {
-    id: Math.random().toString(36).slice(2),
-    title: p.title,
-    summary: p.description || p.title,
-    // Translation fields — filled by translateCards()
-    title_ru: needsTranslation ? null : p.title,
-    summary_ru: needsTranslation ? null : decodeEntities(p.description || p.title || ""),
-    title_en: null,   // filled lazily when switching to EN
-    summary_en: null,
-    needsTranslation,
-    cat: p.cat, tag: p.tag, entity: p.entity || null, sources, link: p.link, date: p.date,
-    time: formatTime(p.date),
-    perspectives: (ru.length && west.length) ? {
-      russian: ru[0].description?.slice(0,160) || null,
-      western: west[0].description?.slice(0,160) || null,
-    } : null,
-    synthesized: false,
-    raw: group,
-  };
-}
 
 // ═══════════════════════════════════════════════════════════
 // AI SYNTHESIS (optional, needs API key)
 // ═══════════════════════════════════════════════════════════
 
-async function synthesize(card) {
-  if (!"" || card.raw.length < 2) return card;
 
-  const ru   = card.raw.filter(i=>i.sourceCountry==="ru");
-  const west = card.raw.filter(i=>i.sourceCountry==="west");
-  const both = ru.length>0 && west.length>0;
-  const snips = card.raw.map(i=>`[${i.sourceName}] ${i.title}: ${i.description.slice(0,200)}`).join("\n");
-  const pf = both
-    ? `"perspectives":{"russian":"мнение рос.СМИ 1-2 пред","western":"мнение зап.СМИ 1-2 пред"}`
-    : `"perspectives":null`;
-
-  const prompt = `Объедини эти новости об одном событии. Только JSON без markdown:\n{"title":"до 80 символов","summary":"2-3 предложения",${pf}}\n\n${snips}`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:350,
-        messages:[{role:"user",content:prompt}] }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return card;
-    const data = await res.json();
-    const text = (data.content||[]).map(b=>b.text||"").join("");
-    const m = text.match(/\{[\s\S]*?\}/);
-    if (!m) return card;
-    const p = JSON.parse(m[0]);
-    return { ...card, title:p.title||card.title, summary:p.summary||card.summary,
-      perspectives:p.perspectives||card.perspectives, synthesized:true };
-  } catch { return card; }
-}
 
 // ═══════════════════════════════════════════════════════════
 // MAIN LOAD
@@ -1780,54 +1174,12 @@ async function synthesize(card) {
 // ════════════════════════════════════════════════════════════════════════════
 // CARD PERSISTENCE — localStorage so cards survive refresh
 // ════════════════════════════════════════════════════════════════════════════
-const STORE_KEY   = "mmsaww_cards_v2";
-const STORE_MAX_H = 48;   // keep cards up to 48 hours
 
-function saveCards(cards) {
-  try {
-    const payload = cards.map(c => ({
-      id: c.id, title: c.title, title_ru: c.title_ru,
-      summary: c.summary, summary_ru: c.summary_ru,
-      cat: c.cat, tag: c.tag, sources: c.sources, link: c.link,
-      date: c.date?.toISOString?.() || c.date,
-      time: c.time, needsTranslation: c.needsTranslation,
-      synthesized: c.synthesized, firstSeen: c.firstSeen || Date.now(),
-      raw: (c.raw||[]).map(r=>({
-        title: r.title, description: r.description,
-        link: r.link, sourceName: r.sourceName,
-        sourceCountry: r.sourceCountry, tag: r.tag
-      }))
-    }));
-    localStorage.setItem(STORE_KEY, JSON.stringify(payload));
-  } catch(e) { /* quota exceeded — silently ignore */ }
-}
+
 
 // Sources removed from the app — purge their cards from cache
-const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters","DropsCapital"]);
 
-function loadStoredCards() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return [];
-    const cutoff = Date.now() - STORE_MAX_H * 3600000;
-    return JSON.parse(raw)
-      .filter(c => {
-        const d = new Date(c.date).getTime();
-        if (isNaN(d) || d <= cutoff) return false;
-        // Drop card if ALL its sources are dead
-        const srcs = c.sources || [];
-        if (srcs.length > 0 && srcs.every(s => DEAD_SOURCES.has(s))) return false;
-        return true;
-      })
-      .map(c => ({
-        ...c,
-        date: new Date(c.date),
-        perspectives: null,
-        // Strip dead sources from mixed-source cards
-        sources: (c.sources || []).filter(s => !DEAD_SOURCES.has(s)),
-      }));
-  } catch(e) { return []; }
-}
+
 
 
 const READ_KEY = "mmsaww_read_v1";
@@ -1873,327 +1225,65 @@ function isReadCard(link) {
   return getReadSet().has(link);
 }
 
-function mergeWithStored(freshCards) {
-  const stored = loadStoredCards();
-  const cutoff  = Date.now() - STORE_MAX_H * 3600000;
-  const now     = Date.now();
-  const NEW_THRESHOLD = 15 * 60 * 1000;  // 15 min = "new" badge
 
-  // Build lookup by primary link
-  const byLink = new Map();
-  stored.forEach(c => {
-    const key = (c.link || c.id || "").toLowerCase();
-    if (key) byLink.set(key, c);
-    // Also index by all raw links
-    (c.raw||[]).forEach(r => {
-      if (r.link) byLink.set(r.link.toLowerCase(), c);
-    });
-  });
 
-  const merged = [...stored];
 
-  for (const card of freshCards) {
-    const key = (card.link || "").toLowerCase();
-    // Check if any raw link matches stored
-    const rawLinks = (card.raw||[]).map(r => (r.link||"").toLowerCase()).filter(Boolean);
-    const exists = byLink.has(key) || rawLinks.some(l => byLink.has(l));
-    if (!exists) {
-      // Brand new card
-      card.firstSeen = now;
-      card.isNew = !isReadCard(card.link);  // only new if not already read
-      merged.push(card);
-      // Index it
-      if (key) byLink.set(key, card);
-      rawLinks.forEach(l => byLink.set(l, card));
-    } else {
-      // Existing card — update sources list if new source joined the cluster
-      const existing = byLink.get(key) || byLink.get(rawLinks[0]);
-      if (existing) {
-        const newSrcs = (card.sources||[]).filter(s => !(existing.sources||[]).includes(s));
-        if (newSrcs.length) existing.sources = [...(existing.sources||[]), ...newSrcs];
-        // Update isNew status based on read state
-        existing.isNew = !isReadCard(existing.link);
-      }
-    }
-  }
-
-  // Prune old cards + sort
-  return merged
-    .filter(c => new Date(c.date).getTime() > cutoff)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-}
-
-function clearStoredCards() {
-  try { localStorage.removeItem(STORE_KEY); } catch(e) {}
-  state.cards = [];
-  renderContent();
-}
 
 // Categorize + group + build cards from a raw item list.
 // Shared by loadAll (full refresh) and retrySource (single-source retry)
 // so both paths get identical Groq/regex classification behavior.
-async function buildCardsFromItems(items) {
-  const _dedupSeen = new Map();
-  const dedupedItems = items.filter(it => {
-    const key = (it.title||"").toLowerCase().replace(/[^а-яёa-z0-9]/gi,"").slice(0,60);
-    if (_dedupSeen.has(key)) return false;
-    _dedupSeen.set(key, true);
-    return true;
-  });
 
-  let categorized;
-  if (state.groqKey) {
-    state.classifying = true;
-    renderStatusBar();
-    try {
-      categorized = await categorizeWithAI(dedupedItems, state.groqKey);
-    } catch(e) {
-      const localFallback    = dedupedItems.filter(it => it.tag);
-      const preClassifiedFallback = dedupedItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
-      const nonLocalFallback = dedupedItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
-      const classifiedFallback = nonLocalFallback.map(it => {
-        const cat = categorizeFallback(it.title, it.description);
-        return cat ? { ...it, cat } : null;
-      }).filter(Boolean);
-      categorized = [...localFallback, ...preClassifiedFallback, ...classifiedFallback];
-    }
-    state.classifying = false;
-    renderStatusBar();
-  } else {
-    const localFallback    = dedupedItems.filter(it => it.tag);
-    const preClassifiedFallback = dedupedItems.filter(it => !it.tag && it.cat && it.cat !== "pending");
-    const nonLocalFallback = dedupedItems.filter(it => !it.tag && (!it.cat || it.cat === "pending"));
-    const classifiedFallback = nonLocalFallback.map(it => {
-      const cat = categorizeFallback(it.title, it.description);
-      return cat ? { ...it, cat } : null;
-    }).filter(Boolean);
-    categorized = [...localFallback, ...preClassifiedFallback, ...classifiedFallback];
-  }
 
-  const byCat = {};
-  CATEGORIES.filter(c=>c.id!=="all").forEach(c=>{ byCat[c.id]=[]; });
-  categorized.forEach(it => { if (byCat[it.cat]) byCat[it.cat].push(it); });
-  Object.values(byCat).forEach(arr => arr.sort((a,b)=>b.date-a.date));
-
-  // Jaccard groups per category, then an optional semantic merge pass on top —
-  // both run per-category in parallel so this doesn't add serial wait time.
-  const groupedPerCat = await Promise.all(
-    Object.entries(byCat).map(async ([, catItems]) => {
-      let groups = groupArticles(catItems);
-      if (state.groqKey) groups = await semanticMergeGroups(groups, state.groqKey);
-      return groups.slice(0,20).map(g => makeCard(g));
-    })
-  );
-  const raw = groupedPerCat.flat();
-  raw.sort((a,b) => b.date-a.date);
-  return raw;
-}
-
-async function loadAll() {
-  const run = ++state.runId;
-  state.bloombergItems = state.bloombergItems || [];
+async function loadNews() {
   state.loading = true;
-  state.synthCount = 0;
-  state.synthTotal = 0;
-  state.srcStatus = {};
-  state.srcError = {};
-
-  SOURCES.forEach(s => { state.srcStatus[s.name] = "load"; state.srcError[s.name] = null; });
-  renderHeader();
-  renderStatusBar();
-
-  // Show cached cards INSTANTLY — no blank screen
-  if (!state.cards.length) {
-    const _cached = loadStoredCards();
-    if (_cached.length) { state.cards = _cached; renderContent(); }
-  }
   setRefreshState(true);
 
-  // Fetch all sources in parallel — each one individually capped so a single
-  // slow/congested source can never hold up first render for everyone else.
-  // (Previously: Promise.all waited for the SLOWEST source, so one stuck proxy
-  // chain could stall the whole app for a minute+. Now: after HARD_CAP, that
-  // source is marked as failed for THIS pass and picked up by the existing
-  // auto-retry below — its underlying fetch keeps running harmlessly in the
-  // background and is simply not waited on.)
-  const HARD_CAP = 9000;
-  const results = await Promise.all(
-    SOURCES.map(async src => {
-      const capped = await Promise.race([
-        fetchSource(src),
-        new Promise(resolve => setTimeout(
-          () => resolve({ items: [], errors: ["не успел за " + (HARD_CAP/1000) + "с"] }),
-          HARD_CAP
-        )),
-      ]);
-      if (run !== state.runId) return [];
-      const { items, errors } = capped;
-      state.srcStatus[src.name] = items.length ? "ok" : "err";
-      state.srcError[src.name] = items.length ? null : (errors[0] || "нет ответа");
-      renderStatusBar();
-      return items;
-    })
-  );
+  // Show whatever we already have instantly — no blank screen on repeat visits
+  renderHeader();
+  renderContent();
 
-  if (run !== state.runId) return;
+  try {
+    // Cache-bust so a manual refresh always sees the latest committed data,
+    // not a stale copy the browser or GitHub Pages CDN is still holding
+    const res = await fetch("./data/news.json?t=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
 
-  // Defensive safety net: every source's status should already be "ok" or
-  // "err" by this point (each was individually capped above). If any is
-  // somehow still stuck on "load" — e.g. this run got superseded mid-flight
-  // by another refresh — force it to "err" so the status bar never shows a
-  // permanently spinning "…" dot.
-  SOURCES.forEach(s => {
-    if (state.srcStatus[s.name] === "load") {
-      state.srcStatus[s.name] = "err";
-      state.srcError[s.name] = "не завершилось";
-    }
-  });
-
-  state.loading = false;
-  state.lastUpdated = new Date();
-  setRefreshState(false);
-
-  const allItems = results.flat().filter(it => {
-    const src = SOURCES.find(s => s.name === it.sourceName);
-    if (src?.bloombergOnly) {
-      // Stash bloomberg items separately, don't add to main feed
-      state.bloombergItems = state.bloombergItems || [];
-      if (!state.bloombergItems.find(x => x.link === it.link)) {
-        state.bloombergItems.push(it);
-      }
-      return false;
-    }
-    return true;
-  });
-  state.bloombergItems = (state.bloombergItems || [])
-    .sort((a,b) => b.date - a.date)
-    .slice(0, 30);
-  renderBloombergWidget();
-  // Translate Bloomberg titles to Russian in background
-  if (state.lang === "ru") {
-    (state.bloombergItems || []).forEach(async it => {
-      if (!it.title_ru && it.title) {
-        const tr = await gtranslate(it.title, "ru");
-        if (tr) { it.title_ru = tr; renderBloombergWidget(); }
-      }
-    });
+    state.cards = (data.cards || []).map(c => ({
+      ...c,
+      date: new Date(c.date),
+      summary: c.description,
+      summary_ru: c.description_ru,
+    }));
+    state.digests = data.digests || {};
+    state.dataGeneratedAt = data.generatedAt ? new Date(data.generatedAt) : null;
+    state.loadError = null;
+  } catch (e) {
+    state.loadError = e?.message || "не удалось загрузить";
   }
 
-  const raw = await buildCardsFromItems(allItems);
-
-  // ── Persist + merge with stored cards ────────────────────────────────────
-  state.cards = mergeWithStored(raw);
-  saveCards(state.cards);
+  state.loading = false;
+  setRefreshState(false);
   renderHeader();
   renderTicker();
-  if (!expandedId) renderContent();  // don't interrupt if reading
+  if (!expandedId) renderContent();
 
-  // Background RU translation — Groq if key, Google Translate otherwise
-  translateCards(state.cards, "ru", "");
-
-  // AI Siri sentiment — delay 3s to avoid Groq 429 with translateCards
-  state.sentimentDone = false;
-  setTimeout(() => triggerSentiment(), 3000);
-
-  // Auto-retry removed — failed sources stay marked "err" with their ↻
-  // button available for a manual retry, instead of firing on their own.
+  // Digest is pre-computed server-side — just display whichever one matches
+  // the current filter tab, no per-reader Groq call needed for this anymore
+  triggerSentiment();
 }
 
 // Re-fetch a single source and merge any new items into the current feed —
 // used both by the automatic post-load retry and the manual ↻ button on a
 // failed source pill.
-async function retrySource(name) {
-  const src = SOURCES.find(s => s.name === name);
-  if (!src) return;
-  const run = state.runId;
 
-  state.srcStatus[name] = "load";
-  renderStatusBar();
-
-  const { items, errors } = await fetchSource(src);
-  if (run !== state.runId) return; // a full refresh started meanwhile
-
-  state.srcStatus[name] = items.length ? "ok" : "err";
-  state.srcError[name]  = items.length ? null : (errors[0] || "нет ответа");
-  renderStatusBar();
-  if (!items.length) return;
-
-  const filtered = items.filter(it => !(SOURCES.find(s => s.name === it.sourceName)?.bloombergOnly));
-  if (!filtered.length) return;
-
-  const newCards = await buildCardsFromItems(filtered);
-  state.cards = mergeWithStored(newCards);
-  saveCards(state.cards);
-  renderHeader();
-  // Several sources can retry around the same time — debounced so their
-  // renders coalesce instead of stacking up as separate full re-renders
-  if (!expandedId) renderContentDebounced();
-  translateCards(state.cards, "ru", "");
-}
 
 // ═══════════════════════════════════════════════════════════
 // TRANSLATION
 // ═══════════════════════════════════════════════════════════
 
 // Translate a batch of {title, summary} objects → returns [{title_ru, summary_ru}, ...]
-async function translateBatch(items, targetLang, apiKey) {
-  const dir = targetLang === "ru"
-    ? "Переведи на русский язык. Перевод должен звучать естественно, как написанный носителем языка."
-    : "Translate to English. The translation should sound natural, as if written by a native speaker.";
 
-  const lines = items.map((it, i) =>
-    `${i}|TITLE|${it.title}
-${i}|SUMMARY|${it.summary}`
-  ).join("\n");
-
-  const prompt = `${dir}
-
-Ответь ТОЛЬКО в формате:
-0|TITLE|перевод заголовка
-0|SUMMARY|перевод описания
-1|TITLE|...
-и т.д.
-
-Не добавляй ничего лишнего. Каждая строка начинается с номера.
-
-Тексты:
-${lines}`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text = (data.content || []).map(b => b.text || "").join("");
-
-    // Parse response lines
-    const result = items.map(() => ({ title: null, summary: null }));
-    text.split("\n").forEach(line => {
-      const m = line.match(/^(\d+)\|(TITLE|SUMMARY)\|(.+)$/);
-      if (!m) return;
-      const [, idx, field, val] = m;
-      const i = parseInt(idx);
-      if (i < result.length) {
-        if (field === "TITLE")   result[i].title   = val.trim();
-        if (field === "SUMMARY") result[i].summary = val.trim();
-      }
-    });
-    return result;
-  } catch { return null; }
-}
 
 // Free Google Translate fallback (no API key needed)
 async function gtranslate(text, targetLang, attempt = 0) {
@@ -2220,80 +1310,35 @@ async function gtranslate(text, targetLang, attempt = 0) {
 // Fallback translator via Groq (gpt-oss) — used when Google's endpoint has
 // failed for a given string even after the retry above. Keeps translation
 // working through Google rate-limit spikes instead of just giving up.
-async function groqTranslate(text, targetLang) {
-  if (!text || !state.groqKey) return null;
-  const dir = targetLang === "ru" ? "русский" : "английский";
-  const d = await groqFetch({
-    model: "openai/gpt-oss-20b",
-    max_tokens: 600,
-    reasoning_effort: "low",
-    messages: [{ role: "user", content:
-      `Переведи на ${dir} язык, только перевод без пояснений и без кавычек:\n\n${text.slice(0,1000)}` }],
-  }, state.groqKey, 12000);
-  return d?.choices?.[0]?.message?.content?.trim() || null;
-}
 
-async function translateCards(cards, targetLang, apiKey) {
-  const fieldT = targetLang === "ru" ? "title_ru"   : "title_en";
-  const fieldS = targetLang === "ru" ? "summary_ru"  : "summary_en";
 
-  const toTranslate = cards.filter(c => {
-    if (targetLang === "ru") return c.needsTranslation && !c.title_ru;
-    if (targetLang === "en") return !c.title_en;
-    return false;
-  });
 
-  if (!toTranslate.length) return;
-
-  state.translating = true;
-  renderStatusBar();
-
-  // Groq (gpt-oss) is the PRIMARY translator when a key is present — this is
-  // the exact same reliable path already used for full-article summaries
-  // (which the user confirmed works consistently). Google Translate's
-  // undocumented "gtx" endpoint goes here only as a fallback: for users
-  // without a Groq key, or on the rare case Groq itself is unavailable.
-  // This was flipped from Google-first because Google was the unreliable
-  // half of the pair — headlines are exactly what kept failing.
-  //
-  // Each finished card is patched into the DOM individually (patchCardTitle)
-  // instead of triggering a full renderContent() rebuild. Translation can be
-  // slow/flaky and take a long time to work through many cards — a full
-  // grid rebuild on every little bit of progress is what looked like a
-  // "refresh every few seconds" while reading. Patching one <h3> at a time
-  // is invisible: no flicker, no scroll jump, no replayed animation.
-  const CONCURRENT = 3;
-  for (let i = 0; i < toTranslate.length; i += CONCURRENT) {
-    const batch = toTranslate.slice(i, i + CONCURRENT);
-    await Promise.all(batch.map(async card => {
-      let t = null, s = null;
-      if (state.groqKey) {
-        [t, s] = await Promise.all([
-          groqTranslate(card.title, targetLang),
-          groqTranslate(card.summary, targetLang),
-        ]);
-      }
-      if (!t) t = await gtranslate(card.title, targetLang);
-      if (!s) s = await gtranslate(card.summary, targetLang);
-      if (t) card[fieldT] = t;
-      if (s) card[fieldS] = s;
-      if (t || s) patchCardTitle(card);
-    }));
-  }
-
-  state.translating = false;
-  renderStatusBar();
-}
 
 function toggleLang() {
   const newLang = state.lang === "ru" ? "en" : "ru";
   state.lang = newLang;
   const btn = document.getElementById("lang-btn");
   btn.textContent = newLang.toUpperCase();
-  // Render immediately with what we have (may be partial)
   renderContent();
-  // Then fill in missing translations
-  translateCards(state.cards, newLang, "");
+
+  // Western cards already carry their original English text as card.title —
+  // only RU-sourced cards need translating for the EN view, and only once
+  // per session. This is a deliberate, occasional manual action (not bulk
+  // background work), so a plain Google Translate call on demand is fine.
+  if (newLang === "en") {
+    const need = state.cards.filter(c => !c.title_en && !(c.sources||[]).some(s => WEST_SOURCE_NAMES.has(s)));
+    (async () => {
+      for (const card of need.slice(0, 60)) {
+        const [t, s] = await Promise.all([
+          gtranslate(card.title, "en"),
+          gtranslate(card.summary, "en"),
+        ]);
+        if (t) card.title_en = t;
+        if (s) card.summary_en = s;
+      }
+      if (state.lang === "en") renderContent();
+    })();
+  }
 }
 
 // Helper: get display title/summary for current lang
@@ -2311,20 +1356,7 @@ function displaySummary(card) {
 // many cards translating in the background, patching in place means no
 // flicker, no lost scroll position, and no replayed entrance animation —
 // translation can take as long as it needs without disturbing reading.
-function patchCardTitle(card) {
-  const titleEl = document.querySelector(`#card-${card.id} .ctitle`);
-  if (!titleEl) return; // card isn't in the current view — nothing to patch
-  const newBadge = card.isNew ? '<span class="card-new-badge">NEW</span>' : "";
-  titleEl.innerHTML = escHtml(displayTitle(card)) + newBadge;
-  // Drop the "⟳ перевод" pending indicator now that translation landed
-  const pendingEl = document.querySelector(`#card-${card.id} .ctags .csynth`);
-  if (pendingEl && pendingEl.textContent.includes("перевод")) pendingEl.remove();
-  // If this card is currently expanded, refresh its visible summary too
-  if (typeof expandedId !== "undefined" && expandedId === card.id) {
-    const bodyEl = document.getElementById(`expand-body-${card.id}`);
-    if (bodyEl && typeof renderSummary === "function") renderSummary(bodyEl, card.id);
-  }
-}
+
 
 
 // ═══════════════════════════════════════════════════════════
@@ -2358,68 +1390,24 @@ function renderHeader() {
 
 function toggleSrcBar() { /* merged into filterbar */ }
 
-function toggleBloomberg() {
-  const wrap = document.getElementById("blmb-wrap");
-  const body = document.getElementById("blmb-body");
-  const chev = document.getElementById("blmb-chevron");
-  if (!wrap) return;
-  const open = wrap.classList.toggle("open");
-  if (body) body.style.display = open ? "" : "none";
-}
 
-function renderBloombergWidget() {
-  const wrap  = document.getElementById("blmb-wrap");
-  const body  = document.getElementById("blmb-body");
-  const count = document.getElementById("blmb-count");
-  if (!wrap) return;
-  const items = state.bloombergItems || [];
-  if (!items.length) { wrap.style.display = "none"; return; }
-  wrap.style.display = "";
-  if (count) count.textContent = items.length + " заголовков";
-  if (!body) return;
-  body.innerHTML = items.map(it => {
-    const t = it.title_ru || it.title || "";
-    const link = translatedLink(it.link, it.sourceName);
-    const time = it.date ? formatTime(it.date) : "";
-    return `<div class="blmb-item">
-      <span class="blmb-time">${time}</span>
-      <span class="blmb-title"><a href="${escHtml(link)}" target="_blank"
-        rel="noopener" onclick="event.stopPropagation()">${escHtml(t)}</a></span>
-    </div>`;
-  }).join("");
-}
+
+
 function renderStatusBar() {
   const el = document.getElementById("sources-inline");
   if (!el) return;
   const anyActive = state.srcFilter.size > 0;
+  // Source list now comes from whatever's actually in the loaded cards —
+  // there's no static SOURCES config on the client anymore, and no live
+  // fetch status to show (collection happens server-side on a schedule).
+  const allSources = [...new Set(state.cards.flatMap(c => c.sources || []))].sort();
   let h = "";
-  SOURCES.forEach(s => {
-    const st = state.srcStatus[s.name] || "load";
-    const on = state.srcFilter.has(s.name) ? " on" : "";
-    const dot = st === "ok" ? "\u25cf" : st === "err" ? "\u25cb" : "\u22ef";
-    const dotColor = st === "ok" ? "color:var(--green)" : st === "err" ? "color:var(--red)" : "color:var(--text3)";
-    if (st === "err") {
-      // Failed source: tooltip shows the reason, small ↻ retries just this one
-      const reason = escHtml(state.srcError[s.name] || "ошибка загрузки");
-      h += "<span class=\"fbtn srcfbtn err" + on + "\" title=\"" + reason + "\">"
-         + "<span onclick=\"toggleSrcFilter('" + s.name + "')\" style=\"cursor:pointer\">"
-         + "<span style=\"font-size:7px;" + dotColor + ";\">" + dot + "</span> " + s.name + "</span>"
-         + "<span class=\"src-retry\" onclick=\"event.stopPropagation();retrySource('" + s.name + "')\" title=\"Повторить: " + reason + "\">\u21bb</span>"
-         + "</span>";
-    } else {
-      h += "<button class=\"fbtn srcfbtn" + on + "\" onclick=\"toggleSrcFilter('" + s.name + "')\" title=\"" + (st==="ok" ? "загружено" : "загрузка\u2026") + "\">"
-         + "<span style=\"font-size:7px;" + dotColor + ";\">" + dot + "</span> " + s.name + "</button>";
-    }
+  allSources.forEach(name => {
+    const on = state.srcFilter.has(name) ? " on" : "";
+    h += `<button class="fbtn srcfbtn${on}" onclick="toggleSrcFilter('${name}')">${name}</button>`;
   });
-  if (anyActive) h += "<button class=\"fbtn\" onclick=\"clearSrcFilter()\" style=\"color:var(--red);border-color:var(--red)\">\u2715 сброс</button>";
-  let statusHtml = "";
-  if (state.classifying)
-    statusHtml = "<span class=\"fstatus\">\uD83E\uDDE0 Классификация\u2026</span>";
-  else if (state.translating)
-    statusHtml = "<span class=\"fstatus\">\uD83C\uDF10 Перевод\u2026</span>";
-  else if (state.synthTotal > 0 && state.synthCount < state.synthTotal)
-    statusHtml = "<span class=\"fstatus\">\u27F3 Синтез " + state.synthCount + "/" + state.synthTotal + "</span>";
-  el.innerHTML = h + statusHtml;
+  if (anyActive) h += `<button class="fbtn" onclick="clearSrcFilter()" style="color:var(--red);border-color:var(--red)">✕ сброс</button>`;
+  el.innerHTML = h;
 }
 
 function renderTicker() {
@@ -2447,11 +1435,9 @@ function visibleCards(allCards) {
     cards = cards.filter(c => isSaved(c.link));
   }
   if (state.pressFilt === "ru") {
-    const ruSet = new Set(SOURCES.filter(s => s.country === "ru").map(s => s.name));
-    cards = cards.filter(c => (c.sources || []).some(s => ruSet.has(s)));
+    cards = cards.filter(c => (c.sources || []).some(s => !WEST_SOURCE_NAMES.has(s)));
   } else if (state.pressFilt === "west") {
-    const westSet = new Set(SOURCES.filter(s => s.country === "west").map(s => s.name));
-    cards = cards.filter(c => (c.sources || []).some(s => westSet.has(s)));
+    cards = cards.filter(c => (c.sources || []).some(s => WEST_SOURCE_NAMES.has(s)));
   }
   return cards;
 }
@@ -2550,16 +1536,15 @@ function renderContent() {
   }
 
   if (!state.loading && state.cards.length===0) {
-    const errored = SOURCES.filter(s=>state.srcStatus[s.name]==="err").map(s=>s.name);
     el.innerHTML = `<div class="msg-box">
       <div class="msg-title">Нет данных</div>
       <div class="msg-text">
-        Не удалось загрузить новости через CORS-прокси.<br>
-        Не прошли источники: ${errored.length ? errored.join(", ") : "все"}<br><br>
-        Попробуйте нажать «Обновить» — прокси иногда восстанавливаются.<br>
+        Не удалось загрузить новости.<br>
+        ${state.loadError ? escHtml(state.loadError) + "<br><br>" : ""}
+        Попробуйте нажать «Обновить».<br>
         Или откройте файл через локальный сервер (npx serve .).
       </div>
-      <button class="rbtn" onclick="loadAll()">↻ Повторить</button>
+      <button class="rbtn" onclick="loadNews()">↻ Повторить</button>
     </div>`;
     return;
   }
@@ -2635,6 +1620,10 @@ function skelHTML() {
 const WESTERN_DOMAINS = ["bbc.com","bbc.co.uk","wsj.com","ft.com","aljazeera.com",
   "bloomberg.com","theguardian.com","nytimes.com","washingtonpost.com","reuters.com",
   "politico.com","politico.eu","forbes.com","apnews.com"];
+
+// Replaces the old SOURCES[].country lookup now that the client has no static
+// source config — used for the "Русская/Зарубежная" press filter.
+const WEST_SOURCE_NAMES = new Set(["BBC","Al Jazeera","Politico","Reuters","AP"]);
 
 function isEnglishSource(sourceName, link) {
   const src = (sourceName||"").toLowerCase();
@@ -3115,27 +2104,21 @@ function toggleSiriBody() {
 }
 
 function triggerSentiment() {
-  if (state.sentimentDone) return;
-  if (state.sentimentModel === "off") return;
-  if (state.cards.length < 3) return;
-  generateSentiment(state.cards, state.filter);
+  displayDigest(state.filter);
 }
 
 function regenSentiment() {
-  try {
-    const y = new Date(); y.setDate(y.getDate() - 1);
-    const cat = state.filter === "all" ? "all" : state.filter;
-    localStorage.removeItem("siri_" + y.toISOString().slice(0, 10) + "_" + cat);
-  } catch(e) {}
-  state.sentimentDone = false;
-  generateSentiment(state.cards, state.filter);
+  // Digest is pre-computed server-side on a schedule now — a manual "regen"
+  // can't trigger a new server run, so this just re-fetches the current
+  // data file in case a newer digest has landed since the page was loaded.
+  loadNews();
 }
 
-async function generateSentiment(cards, filterCat) {
-  const m   = state.sentimentModel;
-  const key = state.groqKey;
+// Shows whichever pre-computed digest matches the current category tab —
+// this used to be a live per-reader Groq call; now it's instant, since the
+// server already generated one digest per category during collection.
+function displayDigest(filterCat) {
   const cat = filterCat || "all";
-
   const wrap  = document.getElementById("siri-wrap");
   const body  = document.getElementById("siri-body");
   const badge = document.getElementById("siri-badge");
@@ -3143,145 +2126,35 @@ async function generateSentiment(cards, filterCat) {
   const titleEl = document.querySelector(".siri-title");
   if (!wrap || !body) return;
 
-  wrap.style.display = "";
-  wrap.classList.remove("idle");
-
-  // Update widget title to reflect current category
   const catNames = { all:"Резюме за вчера", geopolitics:"Геополитика · вчера",
     finance:"Финансы · вчера", tech:"Технологии · вчера",
     lifestyle:"Лайфстайл · вчера", local:"Локальное · вчера" };
   if (titleEl) titleEl.textContent = catNames[cat] || "Резюме за вчера";
 
-  if (m === "off" || !key) {
-    wrap.classList.add("idle");
-    body.innerHTML = `<div class="siri-no-key">
-      Для резюме добавьте ключ Groq
-      <button class="siri-setup-btn" onclick="document.getElementById('api-panel').classList.add('open')">⚙ Настройки</button>
-    </div>`;
-    body.classList.add("open");
-    siriBodyOpen = true;
+  const digest = state.digests[cat];
+  wrap.style.display = "";
+  wrap.classList.add("idle");
+
+  if (!digest) {
+    body.innerHTML = `<div class="siri-no-key">Резюме для этого раздела пока нет</div>`;
+    if (badge) { badge.textContent = ""; badge.className = "siri-badge"; }
+    if (regen) regen.style.display = "";
     return;
   }
 
-  // Daily cache key includes category
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yKey = "siri_" + yesterday.toISOString().slice(0, 10) + "_" + cat;
-  const cached = (() => {
-    try { return JSON.parse(localStorage.getItem(yKey) || "null"); } catch(e) { return null; }
-  })();
-  if (cached && cached.html) {
-    body.innerHTML = cached.html;
-    badge.textContent = cached.badge || "";
-    badge.className   = "siri-badge " + (cached.bc || "neutral");
-    body.classList.add("open");
-    siriBodyOpen = true;
-    if (regen) regen.style.display = "";
-    wrap.classList.add("idle");
-    state.sentimentDone = true;
-    return;
-  }
-
-  body.innerHTML = `<div class="siri-loading"><div class="siri-dots"><span></span><span></span><span></span><span></span><span></span></div> составляю резюме…</div>`;
-  body.classList.add("open");
-  siriBodyOpen = true;
-  if (regen) regen.style.display = "none";
-
-  // Build card pool: yesterday's cards, filtered by category if not "all"
-  const yStart = new Date(yesterday); yStart.setHours(0,0,0,0);
-  const yEnd   = new Date(yesterday); yEnd.setHours(23,59,59,999);
-  let yCards = cards.filter(c => c.date >= yStart && c.date <= yEnd);
-  if (cat !== "all") yCards = yCards.filter(c => c.cat === cat);
-  const pool = yCards.length >= 3 ? yCards : (
-    cat !== "all" ? cards.filter(c => c.cat === cat).slice(0, 30) : cards.slice(0, 40)
-  );
-
-  const dateStr = yesterday.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
-
-  let prompt;
-  if (cat === "all") {
-    // Cross-category overview: group by category, pick top news per section
-    const catLabels = { geopolitics:"Геополитика", finance:"Финансы",
-      tech:"Технологии", lifestyle:"Лайфстайл" };
-    const byCat = {};
-    pool.forEach(c => { if (catLabels[c.cat]) (byCat[c.cat] = byCat[c.cat] || []).push(c); });
-    const sections = Object.entries(catLabels)
-      .filter(([id]) => (byCat[id]||[]).length > 0)
-      .map(([id, label]) =>
-        `### ${label}\n` + (byCat[id]||[]).slice(0,6).map(c => `- ${c.title_ru||c.title}`).join("\n")
-      ).join("\n\n");
-
-    prompt = `Ты редактор новостного агрегатора. Напиши общее резюме за ${dateStr} по разделам.\n\nДля каждого раздела — 1-2 предложения с ключевыми событиями. Конкретные факты, имена, цифры.\nВ конце — одно предложение с тональностью дня.\n\nОтветь ТОЛЬКО HTML:\n<p><b>🌍 Геополитика:</b> ...</p>\n<p><b>💰 Финансы:</b> ...</p>\n<p><b>💻 Технологии:</b> ...</p>\n<p><b>🎭 Лайфстайл:</b> ...</p>\n<p><b>📊 Тональность дня:</b> Слово — почему</p>\n\nПропускай разделы без новостей. Максимум 180 слов. Только HTML.\n\nНовости:\n${sections}`;
-  } else {
-    // Single-category deep-dive
-    const catLabel = { geopolitics:"Геополитика", finance:"Финансы",
-      tech:"Технологии", lifestyle:"Лайфстайл", local:"Локальные новости" }[cat] || cat;
-    const items = pool.slice(0, 12).map(c => `- ${c.title_ru||c.title}`).join("\n");
-
-    prompt = `Ты редактор новостного агрегатора. Напиши резюме раздела «${catLabel}» за ${dateStr}.\n\nВыдели 2-3 самых важных события, 2-3 предложения на каждое. Конкретные факты, имена, цифры. В конце — одно предложение с общим итогом раздела.\n\nОтветь ТОЛЬКО HTML-параграфами:\n<p><b>Событие 1:</b> ...</p>\n<p><b>Событие 2:</b> ...</p>\n<p><b>Итог:</b> ...</p>\n\nМаксимум 160 слов. Только HTML.\n\nНовости раздела:\n${items}`;
-  }
-
-  try {
-    let text = null;
-    if (m === "groq") {
-      const d = await groqFetch({
-        model: "openai/gpt-oss-120b",
-        max_tokens: 900,
-        reasoning_effort: "low",
-        messages: [{ role: "user", content: prompt }]
-      }, key, 25000);
-      text = d?.choices?.[0]?.message?.content?.trim() || null;
-    }
-
-    if (!text) throw new Error("empty response");
-
-    const tl = text.toLowerCase();
-    let bc = "neutral", bt = "—";
-    if (/напряжённ|напряженн/.test(tl))  { bc = "tense";   bt = "Напряжённая"; }
-    else if (/тревожн/.test(tl))          { bc = "alarm";   bt = "Тревожная"; }
-    else if (/позитивн/.test(tl))         { bc = "calm";    bt = "Позитивная"; }
-    else if (/смешанн/.test(tl))          { bc = "mixed";   bt = "Смешанная"; }
-    else if (/нейтральн/.test(tl))        { bc = "neutral"; bt = "Нейтральная"; }
-
-    badge.textContent = bt;
-    badge.className   = "siri-badge " + bc;
-    body.innerHTML    = text;
-    if (regen) regen.style.display = "";
-    wrap.classList.add("idle");
-    state.sentimentDone = true;
-
-    try { localStorage.setItem(yKey, JSON.stringify({ html: text, badge: bt, bc, ts: Date.now() })); } catch(e) {}
-    try {
-      for (const k of Object.keys(localStorage)) {
-        if (k.startsWith("siri_") && k !== yKey) localStorage.removeItem(k);
-      }
-    } catch(e) {}
-
-  } catch(e) {
-    wrap.classList.add("idle");
-    body.innerHTML = `<div class="siri-no-key" style="color:var(--text3)">
-      Ошибка (${(e?.message || "").slice(0, 60)})
-      <button class="siri-setup-btn" onclick="regenSentiment()">Повторить</button>
-    </div>`;
-    if (regen) regen.style.display = "";
-  }
+  body.innerHTML = digest.html;
+  if (badge) { badge.textContent = digest.bt || ""; badge.className = "siri-badge " + (digest.bc || "neutral"); }
+  if (regen) regen.style.display = "";
+  state.sentimentDone = true;
 }
+
+
 
 loadModelPrefs();
 loadRates();
 loadWeather();
 
-// Show stored cards instantly before network fetch
-(function preloadStored() {
-  const stored = loadStoredCards();
-  if (stored.length > 0) {
-    state.cards = stored;
-    renderHeader();
-    renderContent();
-  }
-})();
-
-loadAll();
+loadNews();
 
 // Auto-refresh removed — manual only via refresh button
 
@@ -3395,7 +2268,7 @@ loadAll();
   }, { passive: true });
 
   document.addEventListener("touchend", () => {
-    if (pulling && triggered && !state.loading) loadAll();
+    if (pulling && triggered && !state.loading) loadNews();
     pulling = false;
     indicator.style.transition = "transform .3s ease, opacity .3s ease";
     indicator.style.transform = "translateY(0) rotate(0)";
