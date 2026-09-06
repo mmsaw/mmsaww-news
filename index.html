@@ -551,7 +551,10 @@ span.srcfbtn.err.on {
   font-size:14px;line-height:1.7;color:var(--text);
   padding:0 18px;
 }
-.siri-body.open { max-height:400px; padding:0 18px 16px; }
+.siri-body.open {
+  max-height:400px; padding:0 18px 16px;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
 .siri-body p { margin:5px 0; }
 .siri-body b { color:var(--text); }
 .siri-loading {
