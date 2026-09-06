@@ -1266,6 +1266,7 @@ async function loadNews() {
   state.loading = false;
   setRefreshState(false);
   renderHeader();
+  renderStatusBar();
   renderTicker();
   if (!expandedId) renderContent();
 
@@ -1649,7 +1650,7 @@ function cardHTML(item) {
   const dTitle   = displayTitle(item);
   const dSummary = displaySummary(item);
   const pendingRU = state.lang === "ru" && item.needsTranslation && !item.title_ru;
-  const transLabel = pendingRU ? `<span class="csynth" style="opacity:.6">⟳ перевод</span>` : "";
+  const transLabel = pendingRU ? `<span class="csynth" style="opacity:.6" title="Сервер переведёт на следующем цикле сбора (каждые ~20 мин)">🌐 не переведено</span>` : "";
 
   const srcCnt    = item.sources?.length>1 ? `<span class="csub">${item.sources.length} ист.</span>` : "";
   const tagBadge  = scM ? `<span class="csub ${scM.cls}">${scM.label}</span>` : (item.tag ? `<span class="csub">${item.tag}</span>` : "");
@@ -1672,7 +1673,7 @@ function cardHTML(item) {
   return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
     <div class="ch">
       <div class="ctags">${catBadge}${tagBadge}${entityChip}${synthBadge}${srcCnt}${transLabel}</div>
-      <span class="ctime">${savedStar}${item.time}</span>
+      <span class="ctime">${savedStar}${formatTime(item.date)}</span>
     </div>
     <h3 class="ctitle">${escHtml(dTitle)}${item.isNew ? '<span class="card-new-badge">NEW</span>' : ""}</h3>
     ${perspHTML}
