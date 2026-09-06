@@ -1253,8 +1253,11 @@ async function loadNews() {
     state.cards = (data.cards || []).map(c => ({
       ...c,
       date: new Date(c.date),
+      // Fallback to date for any card written before this field existed
+      firstSeenAt: new Date(c.firstSeenAt || c.date),
       summary: c.description,
       summary_ru: c.description_ru,
+      isNew: !isReadCard(c.link),
     }));
     state.digests = data.digests || {};
     state.dataGeneratedAt = data.generatedAt ? new Date(data.generatedAt) : null;
