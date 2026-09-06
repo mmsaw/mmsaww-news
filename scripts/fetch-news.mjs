@@ -548,14 +548,26 @@ async function main() {
   if (existsSync(OUT_PATH)) {
     try { previous = JSON.parse(await readFile(OUT_PATH, "utf-8")).cards || []; } catch {}
   }
+  const now = new Date().toISOString();
   const cutoff = Date.now() - STORE_MAX_H * 3600000;
   const byId = new Map();
   previous
     .filter(c => new Date(c.date).getTime() > cutoff)
     .filter(c => !DEAD_SOURCES.has(c.sources?.[0]))
     .forEach(c => byId.set(c.id, c));
-  cards.forEach(c => byId.set(c.id, c)); // fresh data wins on conflict
-  const merged = [...byId.values()].sort((a,b) => new Date(b.date) - new Date(a.date));
+  cards.forEach(c => {
+    // firstSeenAt marks when THIS card first entered our system — distinct
+    // from the article's own publish date. Preserve it across runs for
+    // cards we've already seen; only stamp genuinely new ones with "now".
+    // The client sorts by this so freshly-collected items always land at
+    // the top, instead of an article's original date (which can be hours
+    // old by the time Jina/RSS actually surfaces it to us) burying it
+    // beneath already-seen cards.
+    const existing = byId.get(c.id);
+    c.firstSeenAt = existing?.firstSeenAt || now;
+    byId.set(c.id, c);
+  });
+  const merged = [...byId.values()].sort((a,b) => new Date(b.firstSeenAt) - new Date(a.firstSeenAt));
 
   // Digests run BEFORE translation — only 5 Groq calls total, and they get
   // priority on the rate-limit budget while it's freshest. Translation
