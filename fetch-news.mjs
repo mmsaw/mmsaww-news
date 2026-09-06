@@ -307,7 +307,7 @@ async function fetchSource(src) {
 
 // ─── Groq helpers ──────────────────────────────────────────────────────────
 async function groqFetch(body, timeout = 20000) {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     try {
       const res = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -315,12 +315,16 @@ async function groqFetch(body, timeout = 20000) {
         body: JSON.stringify(body),
       }, timeout);
       if (res.status === 429) {
-        if (attempt === 0) { await new Promise(r => setTimeout(r, 4000)); continue; }
+        // This is a scheduled background job, not a live user request — no
+        // reason to give up quickly. Back off longer each attempt instead
+        // of the single 4s retry that was enough for the live client but
+        // not for a run that's already made hundreds of calls this minute.
+        if (attempt < 3) { await new Promise(r => setTimeout(r, 8000 * (attempt + 1))); continue; }
         return null;
       }
       if (!res.ok) return null;
       return await res.json();
-    } catch { if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); continue; } return null; }
+    } catch { if (attempt < 3) { await new Promise(r => setTimeout(r, 3000)); continue; } return null; }
   }
   return null;
 }
@@ -404,12 +408,75 @@ async function gtranslate(text, targetLang) {
   } catch { return null; }
 }
 
-// ─── Main pipeline ─────────────────────────────────────────────────────────
+async function groqComplete(prompt, maxTokens = 900) {
+  const d = await groqFetch({
+    model: "openai/gpt-oss-120b", max_tokens: maxTokens, reasoning_effort: "low",
+    messages: [{ role: "user", content: prompt }],
+  }, 25000);
+  return d?.choices?.[0]?.message?.content?.trim() || null;
+}
+
+function detectMood(text) {
+  const tl = text.toLowerCase();
+  if (/напряжённ|напряженн/.test(tl)) return { bc:"tense",   bt:"Напряжённая" };
+  if (/тревожн/.test(tl))             return { bc:"alarm",   bt:"Тревожная" };
+  if (/позитивн/.test(tl))            return { bc:"calm",    bt:"Позитивная" };
+  if (/смешанн/.test(tl))             return { bc:"mixed",   bt:"Смешанная" };
+  return { bc:"neutral", bt:"Нейтральная" };
+}
+
+// Server-side daily digest — was a per-reader Groq call before (using each
+// visitor's own key); now computed once here and shipped inside news.json,
+// so it's instant for everyone and doesn't depend on the reader having a key.
+async function generateDigests(cards) {
+  const yesterday = new Date(Date.now() - 86400000);
+  const yStart = new Date(yesterday); yStart.setHours(0,0,0,0);
+  const yEnd   = new Date(yesterday); yEnd.setHours(23,59,59,999);
+  const yCards = cards.filter(c => { const d = new Date(c.date); return d >= yStart && d <= yEnd; });
+  const pool = yCards.length >= 3 ? yCards : cards.slice(0, 40);
+  const dateStr = yesterday.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
+  const catLabels = { geopolitics:"Геополитика", finance:"Финансы", tech:"Технологии", lifestyle:"Лайфстайл" };
+  const digests = {};
+
+  // "all" — cross-category overview
+  const byCat = {};
+  pool.forEach(c => { if (catLabels[c.cat]) (byCat[c.cat] = byCat[c.cat] || []).push(c); });
+  const sections = Object.entries(catLabels)
+    .filter(([id]) => (byCat[id]||[]).length > 0)
+    .map(([id, label]) => `### ${label}\n` + (byCat[id]||[]).slice(0,6).map(c => `- ${c.title_ru||c.title}`).join("\n"))
+    .join("\n\n");
+  const allPrompt = `Ты редактор новостного агрегатора. Напиши общее резюме за ${dateStr} по разделам.\n\nДля каждого раздела - 1-2 предложения с ключевыми событиями. Конкретные факты, имена, цифры.\nВ конце - одно предложение с тональностью дня.\n\nОтветь ТОЛЬКО HTML:\n<p><b>Геополитика:</b> ...</p>\n<p><b>Финансы:</b> ...</p>\n<p><b>Технологии:</b> ...</p>\n<p><b>Лайфстайл:</b> ...</p>\n<p><b>Тональность дня:</b> Слово - почему</p>\n\nПропускай разделы без новостей. Максимум 180 слов. Только HTML.\n\nНовости:\n${sections}`;
+  const allText = await groqComplete(allPrompt);
+  if (allText) digests.all = { html: allText, ...detectMood(allText) };
+
+  // Per-category deep-dive
+  for (const [cat, label] of Object.entries(catLabels)) {
+    const items = (byCat[cat] || pool.filter(c=>c.cat===cat)).slice(0, 12).map(c => `- ${c.title_ru||c.title}`).join("\n");
+    if (!items) continue;
+    const prompt = `Ты редактор новостного агрегатора. Напиши резюме раздела "${label}" за ${dateStr}.\n\nВыдели 2-3 самых важных события, 2-3 предложения на каждое. Конкретные факты, имена, цифры. В конце - одно предложение с общим итогом раздела.\n\nОтветь ТОЛЬКО HTML-параграфами:\n<p><b>Событие 1:</b> ...</p>\n<p><b>Событие 2:</b> ...</p>\n<p><b>Итог:</b> ...</p>\n\nМаксимум 160 слов. Только HTML.\n\nНовости раздела:\n${items}`;
+    const text = await groqComplete(prompt, 700);
+    if (text) digests[cat] = { html: text, ...detectMood(text) };
+    await new Promise(r => setTimeout(r, 1500)); // stay well under Groq's rate limit
+  }
+
+  return digests;
+}
+
+
 async function main() {
   console.log(`[${new Date().toISOString()}] Fetching ${SOURCES.length} sources...`);
 
   const results = await Promise.all(SOURCES.map(async src => {
-    const { items, errors } = await fetchSource(src);
+    let { items, errors } = await fetchSource(src);
+    if (!items.length) {
+      // Whole-source retry: a transient blip (momentary rate-limit, brief
+      // network hiccup) shouldn't cost this source the entire 20-minute
+      // cycle. One retry after a short pause catches most of these.
+      await new Promise(r => setTimeout(r, 5000));
+      const retry = await fetchSource(src);
+      if (retry.items.length) { items = retry.items; errors = []; }
+      else errors = retry.errors.length ? retry.errors : errors;
+    }
     console.log(`  ${items.length ? "✓" : "✗"} ${src.name}: ${items.length} items ${errors[0] ? "("+errors[0]+")" : ""}`);
     return items;
   }));
@@ -468,22 +535,6 @@ async function main() {
   cards.sort((a,b) => new Date(b.date) - new Date(a.date));
   console.log(`Final cards: ${cards.length}`);
 
-  // Translate titles for western cards — Groq first (reliable), Google
-  // fallback. 3 at a time, same pace already proven safe in the client app.
-  const toTranslate = cards.filter(c => c.needsTranslation);
-  const TR_CONCURRENT = 3;
-  for (let i = 0; i < toTranslate.length; i += TR_CONCURRENT) {
-    const batch = toTranslate.slice(i, i + TR_CONCURRENT);
-    await Promise.all(batch.map(async card => {
-      let t = await groqTranslate(card.title, "ru");
-      if (!t) t = await gtranslate(card.title, "ru");
-      if (t) card.title_ru = t;
-      let s = await groqTranslate(card.description, "ru");
-      if (!s) s = await gtranslate(card.description, "ru");
-      if (s) card.description_ru = s;
-    }));
-  }
-
   // Merge with previous run's cards still inside the 48h window (so items
   // stay visible across runs even after they scroll out of "latest fetch")
   let previous = [];
@@ -499,9 +550,39 @@ async function main() {
   cards.forEach(c => byId.set(c.id, c)); // fresh data wins on conflict
   const merged = [...byId.values()].sort((a,b) => new Date(b.date) - new Date(a.date));
 
+  // Digests run BEFORE translation — only 5 Groq calls total, and they get
+  // priority on the rate-limit budget while it's freshest. Translation
+  // needs ~240 calls and has its own Google-fallback per item, so it can
+  // absorb rate-limit pressure far better than a single missed digest call
+  // (which has no fallback and used to just come back empty).
+  console.log("Generating daily digests...");
+  const digests = await generateDigests(merged);
+  console.log(`Digests: ${Object.keys(digests).join(", ") || "none"}`);
+
+  // Translate titles for western cards — Groq first (reliable), Google
+  // fallback. Runs on the MERGED set (not just this run's fresh batch) and
+  // filters on "!title_ru", so any card still missing a translation gets
+  // retried every run — including ones that already scrolled out of the
+  // source's live RSS feed and would otherwise never get a second attempt.
+  const toTranslate = merged.filter(c => c.needsTranslation && !c.title_ru);
+  const TR_CONCURRENT = 3;
+  for (let i = 0; i < toTranslate.length; i += TR_CONCURRENT) {
+    const batch = toTranslate.slice(i, i + TR_CONCURRENT);
+    await Promise.all(batch.map(async card => {
+      let t = await groqTranslate(card.title, "ru");
+      if (!t) t = await gtranslate(card.title, "ru");
+      if (t) card.title_ru = t;
+      let s = await groqTranslate(card.description, "ru");
+      if (!s) s = await gtranslate(card.description, "ru");
+      if (s) card.description_ru = s;
+    }));
+  }
+  console.log(`Translated: ${toTranslate.length} cards (${toTranslate.filter(c=>c.title_ru).length} succeeded)`);
+
   const output = {
     generatedAt: new Date().toISOString(),
     categories: CATEGORIES,
+    digests,
     cards: merged,
   };
 
