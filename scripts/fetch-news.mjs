@@ -200,7 +200,18 @@ const SOURCES = [
 
 // ─── Small helpers (ported verbatim from the client app) ──────────────────
 const cdata = s => (s||"").replace(/<!\[CDATA\[|\]\]>/g,"").trim();
-const strip = s => (s||"").replace(/<[^>]+>/g," ").replace(/\s{2,}/g," ").trim();
+// Google News (and some other feeds) HTML-encode their description markup
+// (e.g. "&lt;a href=...&gt;Title&lt;/a&gt;") instead of using real tags or
+// CDATA. Decoding entities BEFORE stripping tags turns that back into real
+// <a>...</a> markup so the tag-removal regex below can actually catch it —
+// otherwise the encoded garbage (full of Latin href/target text) leaks
+// straight through as "the description", and its Latin-heavy content can
+// even fool the English-language detector into trying to translate it.
+const decodeEntitiesServer = s => (s||"")
+  .replace(/&amp;/g,"&")
+  .replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"')
+  .replace(/&#39;/g,"'").replace(/&nbsp;/g," ").replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(n));
+const strip = s => decodeEntitiesServer(s||"").replace(/<[^>]+>/g," ").replace(/\s{2,}/g," ").trim();
 
 function extractDateFromUrl(url) {
   const m = url.match(/\/(20\d{2})[\/\-](\d{2})[\/\-](\d{2})(?:[\/\-]|$)/);
@@ -313,7 +324,7 @@ function parseRSSXML(xml, src) {
       const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
       return m ? strip(cdata(m[1])) : "";
     };
-    const title = grab("title");
+    const title = grab("title").replace(/\s+-\s+[\w.]+\.(ru|com|org|net)$/i, "");
     const descRaw = grab("description") || grab("content");
     const desc  = descRaw.slice(0, 350);
     let link = grab("link");
