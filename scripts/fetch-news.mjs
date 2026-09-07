@@ -20,7 +20,7 @@ if (!GROQ_KEY) {
 // ─── Config ──────────────────────────────────────────────────────────────
 const OUT_PATH = new URL("../data/news.json", import.meta.url);
 const STORE_MAX_H = 48;          // keep cards up to 48h old, same as before
-const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters wire","DropsCapital"]);
+const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters wire","DropsCapital","Banki.ru"]);
 
 const CATEGORIES = [
   { id:"geopolitics", label:"Геополитика",        color:"#f87171" },
@@ -97,12 +97,6 @@ const SOURCES = [
       "https://frankrg.com/feed",
       "https://news.google.com/rss/search?q=site:frankmedia.ru&hl=ru&gl=RU&ceid=RU:ru",
     ], name:"Frank Media", country:"ru" },
-  { urls: [
-      "JINA:https://www.banki.ru/news/lenta/",
-      "https://www.banki.ru/news/rss/",
-      "https://www.banki.ru/news/latest/rss/",
-      "https://news.google.com/rss/search?q=site:banki.ru+банк&hl=ru&gl=RU&ceid=RU:ru",
-    ], name:"Banki.ru", country:"ru" },
   { urls: [
       "JINA:https://www.rbc.ru/short_news/",
       "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
@@ -557,7 +551,7 @@ async function main() {
   const byId = new Map();
   previous
     .filter(c => new Date(c.date).getTime() > cutoff)
-    .filter(c => !DEAD_SOURCES.has(c.sources?.[0]))
+    .filter(c => !(c.sources||[]).some(s => DEAD_SOURCES.has(s)))
     .forEach(c => byId.set(c.id, c));
   cards.forEach(c => {
     // firstSeenAt marks when THIS card first entered our system — distinct
