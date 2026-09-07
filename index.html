@@ -38,7 +38,7 @@
 <meta name="theme-color" content="#1a1a0e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
@@ -292,7 +292,7 @@ span.srcfbtn.err.on {
 .card.has-img{height:auto;min-height:200px;padding:0}
 .card.has-img>.ch,.card.has-img>.ctitle,.card.has-img>.csrcs,.card.has-img>.card-expand{padding-left:18px;padding-right:18px}
 .card.has-img>.ch{padding-top:14px}
-.card.has-img>.card-expand{padding-bottom:18px}
+.card.expanded.has-img>.card-expand{padding-bottom:18px}
 .cimg-wrap{width:100%;height:132px;overflow:hidden;background:var(--bg2);flex-shrink:0}
 .cimg{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
 .card.has-img:hover .cimg{transform:scale(1.03)}
@@ -426,7 +426,7 @@ span.srcfbtn.err.on {
 [data-theme=dark] .card.expanded{box-shadow:0 4px 20px rgba(0,0,0,.4)!important}
 
 /* Expand section lives inside the card */
-.card-expand{margin-top:0;max-height:0;overflow:hidden;
+.card-expand{margin-top:0;max-height:0;min-height:0;overflow:hidden;
   transition:max-height .4s cubic-bezier(.4,0,.2,1), margin-top .2s ease, padding-top .2s ease;
   border-top:0 solid var(--border)}
 .card.expanded .card-expand{max-height:2400px;margin-top:14px;padding-top:14px;border-top-width:1px}
@@ -2867,6 +2867,14 @@ async function shareCardScreenshot(cardId) {
         --mono:${mono}; --red:${red}; --green:#27ae60;
         --shadow-card:0 1px 4px rgba(0,0,0,.10);
       }
+      /* html2canvas has known issues with cross-origin @font-face fonts —
+         force the card back to a locally-available system font just for
+         the capture, so the screenshot never depends on an external font
+         load succeeding cleanly (this was silently breaking the export
+         after Manrope was added for headlines). */
+      #card-${cardId}, #card-${cardId} * {
+        font-family: -apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif !important;
+      }
       /* Freeze every animation/transition inside the card for the capture —
          covers the NEW-badge pulse, entrance fade, and anything else that
          could be mid-frame and cause a blank or blurry screenshot */
@@ -2894,9 +2902,13 @@ async function shareCardScreenshot(cardId) {
     cardEl.style.opacity = "1";
     cardEl.style.transform = "none";
 
-    // Hide action buttons from screenshot
+    // Hide action buttons from screenshot — and the article thumbnail, since
+    // it's loaded from an arbitrary third-party domain that almost never
+    // sends CORS headers permitting canvas export. Even with allowTaint
+    // letting it draw, that permanently taints the canvas and toDataURL()
+    // throws afterward — breaking the whole share feature over one image.
     const hideEls = cardEl.querySelectorAll(
-      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row"
+      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row,.cimg-wrap"
     );
     hideEls.forEach(el => { el.dataset.ssHide = el.style.display; el.style.display = "none"; });
 
