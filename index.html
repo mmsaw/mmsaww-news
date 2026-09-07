@@ -36,6 +36,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MMSAWW NEWS">
 <meta name="theme-color" content="#1a1a0e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
@@ -48,7 +51,7 @@
   --shadow-card:0 1px 2px rgba(0,0,0,.06);
   --r:4px;
   --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
-  --head:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+  --head:"Manrope",-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
   --mono:"SF Mono","Menlo","Monaco",monospace;
 }
 [data-theme=dark]{
@@ -286,6 +289,13 @@ span.srcfbtn.err.on {
 
 /* CARD */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .2s cubic-bezier(.2,.8,.2,1),transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s;position:relative;animation:rise .4s cubic-bezier(.16,1,.3,1) both;box-shadow:var(--shadow-card);height:200px;display:flex;flex-direction:column;overflow:hidden}
+.card.has-img{height:auto;min-height:200px;padding:0}
+.card.has-img>.ch,.card.has-img>.ctitle,.card.has-img>.csrcs,.card.has-img>.card-expand{padding-left:18px;padding-right:18px}
+.card.has-img>.ch{padding-top:14px}
+.card.has-img>.card-expand{padding-bottom:18px}
+.cimg-wrap{width:100%;height:132px;overflow:hidden;background:var(--bg2);flex-shrink:0}
+.cimg{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.card.has-img:hover .cimg{transform:scale(1.03)}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 /* Staggered cascade — first ~10 cards in a grid fade in a beat apart instead
    of all at once. Cards beyond that share the same (small) final delay so a
@@ -1681,7 +1691,13 @@ function cardHTML(item) {
   const chips    = (item.sources||[]).map(s=>`<span class="chip">${escHtml(s)}</span>`).join("");
   const safeLink = (item.link||"").replace(/"/g,"&quot;");
 
-  return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
+  const imageHTML = item.image
+    ? `<div class="cimg-wrap"><img class="cimg" src="${escHtml(item.image)}" alt="" loading="lazy"
+         onerror="this.closest('.cimg-wrap').remove(); this.closest('.card')?.classList.remove('has-img');"></div>`
+    : "";
+
+  return `<div class="card${item.image ? ' has-img' : ''}" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
+    ${imageHTML}
     <div class="ch">
       <div class="ctags">${catBadge}${tagBadge}${entityChip}${synthBadge}${srcCnt}${transLabel}</div>
       <span class="ctime">${savedStar}${formatTime(item.date)}</span>
