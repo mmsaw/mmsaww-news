@@ -40,7 +40,6 @@ const CATEGORIES = [
 // only card.bucket, computed after classification, differs).
 const WEST_PRESS_NAMES = new Set(["AP","Al Jazeera","BBC","Politico"]);
 
-const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|иран|iran|израил|israel|газа|хамас|хуситы|ракетн.*удар|авиаудар|биткоин|bitcoin|brent/i;
 
 const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи категорию и тему.
 
@@ -63,10 +62,19 @@ const CAT_PROMPT = `Ты редактор новостного агрегато�
 и экология, наука как открытие (не как бизнес), знаменитости, соцтемы
 (образование, ЖКХ, транспорт).
 
+"local" — используй ТОЛЬКО для новостей, у которых в квадратных скобках
+указан город (например [город: Ярославль]), И которые реально описывают
+событие в этом конкретном городе: местная администрация, происшествие на
+конкретной улице/районе, местное ЖКХ, локальное культурное событие, работа
+конкретных городских служб. Если у новости указан город, но по содержанию
+это национальная/федеральная новость (просто republished локальным СМИ) —
+НЕ ставь "local", определи её обычную категорию (geopolitics/finance/
+tech/lifestyle) как для любой другой новости.
+
 "other" — используй ТОЛЬКО если новость реально не описывает никакое
 событие/тему выше: чисто служебный/рекламный текст, анонс без содержания,
 нечитаемый обрывок. Это редкая категория, не запасной вариант для лени —
-почти любая настоящая новость подойдёт под одну из четырёх выше.
+почти любая настоящая новость подойдёт под одну из категорий выше.
 
 ПРИ ПОГРАНИЧНЫХ СЛУЧАЯХ — приоритет:
 1. Военное/дипломатическое → всегда geopolitics, даже с экономическим
@@ -78,9 +86,12 @@ const CAT_PROMPT = `Ты редактор новостного агрегато�
    нейросеть нарисовала смешную картинку — lifestyle)
 4. Если новость про людей/общество без чёткой темы выше → lifestyle,
    не other
+5. Новость с указанным городом, но НЕ являющаяся местной по сути —
+   классифицируй по обычным правилам выше, не как local
 
 Тему (ent) — 1-3 слова, главный субъект новости для группировки похожих
-новостей: имя человека, страна, компания, событие.
+новостей: имя человека, страна, компания, событие. Для местных новостей —
+конкретное место/учреждение (например "мэрия Ярославля", "парк Победы").
 Примеры: "Иран", "ФРС", "Трамп", "Nvidia", "выборы в Молдове". Если явного
 субъекта нет — пустая строка.
 
@@ -172,7 +183,7 @@ const SOURCES = [
   { urls: [
       "JINA:https://habr.com/ru/all/",
       "https://habr.com/ru/rss/all/all/",
-    ], name:"Habr", country:"ru", forceCat:"tech" },
+    ], name:"Habr", country:"ru" },
   { urls: [
       "JINA:https://76.ru/",
       "JINA:https://76.ru/text/gorod/",
@@ -298,10 +309,6 @@ function parseRSSXML(xml, src) {
     const rawDate = grab("pubDate") || grab("published") || grab("updated");
     const date = rawDate ? new Date(rawDate) : (extractDateFromUrl(link) || new Date());
     if (!title || title.length < 5) continue;
-    if (src.tag) {
-      const t = (title + " " + desc).toLowerCase();
-      if (NATIONAL_KW.test(t)) continue;
-    }
     if (src.maxAgeDays) {
       const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
       if (Date.now() - date.getTime() > maxMs) continue;
@@ -373,7 +380,10 @@ async function groqFetch(body, timeout = 20000, patient = false) {
 }
 
 async function classifyBatchGroq(items) {
-  const lines = items.map((it,i) => `${i}. [${it.sourceName}] ${it.title}: ${(it.description||"").slice(0,220)}`).join("\n");
+  const lines = items.map((it,i) => {
+    const cityHint = it.tag ? `[город: ${it.tag}] ` : "";
+    return `${i}. ${cityHint}[${it.sourceName}] ${it.title}: ${(it.description||"").slice(0,220)}`;
+  }).join("\n");
   const d = await groqFetch({
     model: "openai/gpt-oss-20b", max_tokens: 2000, reasoning_effort: "low",
     messages: [{ role:"system", content: CAT_PROMPT }, { role:"user", content: "Статьи:\n" + lines }],
@@ -386,20 +396,27 @@ async function classifyBatchGroq(items) {
 }
 
 async function categorizeWithAI(rawItems) {
-  const localItems = rawItems.filter(it => it.tag);
-  const nonLocal    = rawItems.filter(it => !it.tag);
+  // Tag-based sources (Ярославль/Москва) now go through the SAME
+  // classifier as everything else — the model judges whether each item is
+  // genuinely local city news or just national content republished by a
+  // local outlet (using the "[город: X]" hint added in classifyBatchGroq).
+  // Previously every tag-sourced item was auto-stamped "local" with no
+  // real check beyond a narrow keyword blocklist, which is exactly what
+  // let generic national content flood the Ярославль/Москва tabs.
   const BATCH = 30;
   const catMap = {}, entMap = {};
   const batches = [];
-  for (let i = 0; i < nonLocal.length; i += BATCH) batches.push({ offset:i, items: nonLocal.slice(i,i+BATCH) });
+  for (let i = 0; i < rawItems.length; i += BATCH) batches.push({ offset:i, items: rawItems.slice(i,i+BATCH) });
 
   // Groq's free tier is 30 requests/minute. Firing all batches at once (the
   // first real run had 16 of them) blows straight through that limit —
   // most get rate-limited and, with nothing to fall back to, those items
   // just vanished (483 fetched -> only 196 survived). Now: process a few
   // batches at a time, with a pause between waves, and anything that still
-  // fails goes through the same regex classifier the client used to use —
-  // so a Groq hiccup degrades quality for that batch, never drops it.
+  // fails goes through the regex classifier — so a Groq hiccup degrades
+  // quality for that batch, never drops it. The regex fallback can't judge
+  // geo-relevance, so tag-sourced items default to "local" there (the old
+  // behavior) rather than being mis-routed by a blind keyword match.
   const WAVE_SIZE = 4;
   for (let w = 0; w < batches.length; w += WAVE_SIZE) {
     const wave = batches.slice(w, w + WAVE_SIZE);
@@ -410,23 +427,19 @@ async function categorizeWithAI(rawItems) {
           if (typeof r.i === "number" && r.cat) { catMap[offset+r.i] = r.cat; entMap[offset+r.i] = r.ent || ""; }
         });
       }
-      // Fill any gaps (missing indices, or Groq unavailable) with regex fallback
       items.forEach((it, bi) => {
         const idx = offset + bi;
-        if (!catMap[idx]) catMap[idx] = categorizeFallback(it.title, it.description);
+        if (!catMap[idx]) catMap[idx] = it.tag ? "local" : categorizeFallback(it.title, it.description);
       });
     }));
     if (w + WAVE_SIZE < batches.length) await new Promise(r => setTimeout(r, 8000));
   }
 
-  const classified = nonLocal.map((it, idx) => {
+  return rawItems.map((it, idx) => {
     const cat = catMap[idx];
-    if (!cat || cat === "local") return null;
+    if (!cat) return null;
     return { ...it, cat, entity: entMap[idx] || "" };
   }).filter(Boolean);
-
-  const local = localItems.map(it => ({ ...it, cat: it.forceCat || "local" }));
-  return [...local, ...classified];
 }
 
 async function groqTranslate(text, targetLang) {
@@ -540,21 +553,7 @@ async function main() {
   });
   console.log(`Total unique items: ${allItems.length}`);
 
-  // Categorize (AI) + assign forceCat sources directly
-  const withForceCat = allItems.map(it => {
-    const src = SOURCES.find(s => s.name === it.sourceName);
-    return src?.forceCat ? { ...it, cat: src.forceCat } : it;
-  });
-  const preClassified = withForceCat.filter(it => it.cat && !it.tag);
-  const needsClassify  = withForceCat.filter(it => !it.cat && !it.tag);
-  const localItems     = withForceCat.filter(it => it.tag);
-
-  const classified = needsClassify.length ? await categorizeWithAI(needsClassify) : [];
-  const categorized = [
-    ...localItems.map(it => ({ ...it, cat: "local" })),
-    ...preClassified,
-    ...classified,
-  ];
+  const categorized = allItems.length ? await categorizeWithAI(allItems) : [];
   console.log(`Categorized: ${categorized.length} items`);
 
   // Group by category, dedupe within each via Jaccard
