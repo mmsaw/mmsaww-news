@@ -992,12 +992,15 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
 // ═══════════════════════════════════════════════════════════
 
 const CATEGORIES = [
-  { id:"all",         label:"Все",               color:"#e8d5a3" },
-  { id:"geopolitics", label:"Геополитика",        color:"#f87171" },
-  { id:"finance",     label:"Финансы",            color:"#34d399" },
-  { id:"tech",        label:"Технологии",         color:"#a78bfa" },
-  { id:"lifestyle",   label:"Лайфстайл",          color:"#e879f9" },
-  { id:"local",       label:"Ярославль & Москва", color:"#60a5fa" },
+  { id:"all",              label:"Все",                 color:"#e8d5a3" },
+  { id:"geopolitics",      label:"Геополитика",         color:"#f87171" },
+  { id:"finance",          label:"Финансы",             color:"#34d399" },
+  { id:"tech",             label:"Технологии",          color:"#a78bfa" },
+  { id:"lifestyle",        label:"Лайфстайл",           color:"#e879f9" },
+  { id:"world",            label:"Мир",                 color:"#fb923c" },
+  { id:"foreign_lifestyle",label:"Зарубежный лайфстайл",color:"#38bdf8" },
+  { id:"other",            label:"Прочее",              color:"#9ca3af" },
+  { id:"local",            label:"Ярославль & Москва",  color:"#60a5fa" },
 ];
 
 
@@ -1258,6 +1261,8 @@ async function loadNews() {
       date: new Date(c.date),
       // Fallback to date for any card written before this field existed
       firstSeenAt: new Date(c.firstSeenAt || c.date),
+      // Fallback for cards collected before the Мир/Зарубежный лайфстайл split
+      bucket: c.bucket || c.cat,
       summary: c.description,
       summary_ru: c.description_ru,
       isNew: !isReadCard(c.link),
@@ -1377,7 +1382,7 @@ function renderHeader() {
   // Build filter buttons
   let btns = "";
   CATEGORIES.forEach(c => {
-    const cnt = c.id==="all" ? state.cards.length : state.cards.filter(x=>x.cat===c.id).length;
+    const cnt = c.id==="all" ? state.cards.length : state.cards.filter(x=>x.bucket===c.id).length;
     const on  = state.filter === c.id;
     const style = on
       ? `background:${c.color};border-color:${c.color};color:#0c0c0e`
@@ -1561,7 +1566,7 @@ function renderContent() {
   if (state.filter === "all") {
     let html = "";
     CATEGORIES.filter(c=>c.id!=="all").forEach(cat => {
-      const items = visibleCards(state.cards).filter(x=>x.cat===cat.id);
+      const items = visibleCards(state.cards).filter(x=>x.bucket===cat.id);
       html += `<div>
         <div class="sec-hdr">
           <span class="sdot" style="background:${cat.color}"></span>
@@ -1583,7 +1588,7 @@ function renderContent() {
   }
 
   // Filtered view
-  const visible = visibleCards(state.cards).filter(c=>c.cat===state.filter);
+  const visible = visibleCards(state.cards).filter(c=>c.bucket===state.filter);
   if (visible.length===0) {
     el.innerHTML = `<div class="empty">Нет новостей в этом разделе</div>`;
   } else {
