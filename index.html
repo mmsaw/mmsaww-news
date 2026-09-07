@@ -292,6 +292,7 @@ span.srcfbtn.err.on {
 .card.has-img{height:auto;min-height:200px;padding:0}
 .card.has-img>.ch,.card.has-img>.ctitle,.card.has-img>.csrcs,.card.has-img>.card-expand{padding-left:18px;padding-right:18px}
 .card.has-img>.ch{padding-top:14px}
+.card.has-img>.csrcs{padding-bottom:18px}
 .card.expanded.has-img>.card-expand{padding-bottom:18px}
 .cimg-wrap{width:100%;height:132px;overflow:hidden;background:var(--bg2);flex-shrink:0}
 .cimg{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
@@ -2837,6 +2838,7 @@ async function shareCardScreenshot(cardId) {
   const styleEl = document.createElement("style");
   styleEl.id = "__ss_style";
   let brand = null;
+  let imgWrap = null;
 
   try {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -2908,9 +2910,18 @@ async function shareCardScreenshot(cardId) {
     // letting it draw, that permanently taints the canvas and toDataURL()
     // throws afterward — breaking the whole share feature over one image.
     const hideEls = cardEl.querySelectorAll(
-      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row,.cimg-wrap"
+      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row"
     );
     hideEls.forEach(el => { el.dataset.ssHide = el.style.display; el.style.display = "none"; });
+
+    // The thumbnail needs to be fully DETACHED, not just display:none —
+    // html2canvas clones the DOM to render it, and some versions still
+    // attempt to resolve/draw a hidden element's image resource during
+    // that clone step. Removing the node outright leaves nothing for it
+    // to touch, then it's reinserted in the same spot afterward.
+    imgWrap = cardEl.querySelector(".cimg-wrap");
+    let imgWrapNext = null;
+    if (imgWrap) { imgWrapNext = imgWrap.nextSibling; imgWrap.remove(); }
 
     // Add DOM branding element (reliable, no canvas font issues)
     brand = document.createElement("div");
@@ -2954,6 +2965,7 @@ async function shareCardScreenshot(cardId) {
     cardEl.style.opacity = "";
     cardEl.style.transform = "";
     hideEls.forEach(el => { el.style.display = el.dataset.ssHide || ""; delete el.dataset.ssHide; });
+    if (imgWrap) { cardEl.insertBefore(imgWrap, imgWrapNext); }
 
     // Share (mobile) or download (desktop)
     const isMobile = !!(navigator.share && navigator.canShare);
@@ -2982,6 +2994,11 @@ async function shareCardScreenshot(cardId) {
     el?.querySelectorAll("[data-ss-hide]").forEach(e => {
       e.style.display = e.dataset.ssHide || ""; delete e.dataset.ssHide;
     });
+    // Safety net: if something threw before the explicit re-insertion above
+    // ran, make sure the thumbnail isn't left permanently detached
+    if (imgWrap && !imgWrap.isConnected && el) {
+      el.insertBefore(imgWrap, el.firstChild);
+    }
     if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
   }
 }
