@@ -7,10 +7,15 @@ on:
     - cron: "*/20 * * * *"
   workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
 
-# Prevent two runs from racing each other and fighting over the same commit
+# A new scheduled run automatically cancels whatever's still running instead
+# of queuing behind it. Each run produces a complete, self-contained
+# snapshot (not an incremental update depending on the previous run), so
+# there's no correctness reason to let an old run finish first — and if one
+# ever gets stuck (e.g. a rate-limit retry storm), this stops it from
+# silently blocking every scheduled run after it forever.
 concurrency:
   group: fetch-news
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write   # needed to commit the updated data/news.json back
