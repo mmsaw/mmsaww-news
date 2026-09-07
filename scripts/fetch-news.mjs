@@ -23,24 +23,66 @@ const STORE_MAX_H = 48;          // keep cards up to 48h old, same as before
 const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters wire","DropsCapital","Banki.ru"]);
 
 const CATEGORIES = [
-  { id:"geopolitics", label:"Геополитика",        color:"#f87171" },
-  { id:"finance",     label:"Финансы",            color:"#34d399" },
-  { id:"tech",        label:"Технологии",         color:"#a78bfa" },
-  { id:"lifestyle",   label:"Лайфстайл",          color:"#e879f9" },
-  { id:"local",       label:"Ярославль & Москва", color:"#60a5fa" },
+  { id:"geopolitics",      label:"Геополитика",         color:"#f87171" },
+  { id:"finance",          label:"Финансы",             color:"#34d399" },
+  { id:"tech",             label:"Технологии",          color:"#a78bfa" },
+  { id:"lifestyle",        label:"Лайфстайл",           color:"#e879f9" },
+  { id:"world",            label:"Мир",                 color:"#fb923c" },
+  { id:"foreign_lifestyle",label:"Зарубежный лайфстайл",color:"#38bdf8" },
+  { id:"other",            label:"Прочее",              color:"#9ca3af" },
+  { id:"local",            label:"Ярославль & Москва",  color:"#60a5fa" },
 ];
+
+// Sources whose geopolitics/finance content routes to the "Мир" display tab
+// and whose tech/lifestyle content routes to "Зарубежный лайфстайл" — a
+// display-only split by press origin, layered on top of the same unified
+// classification below (card.cat stays the same regardless of source;
+// only card.bucket, computed after classification, differs).
+const WEST_PRESS_NAMES = new Set(["AP","Al Jazeera","BBC","Politico"]);
 
 const NATIONAL_KW = /украин|ukraine|нато|nato|трамп|trump|байден|biden|иран|iran|израил|israel|газа|хамас|хуситы|ракетн.*удар|авиаудар|биткоин|bitcoin|brent/i;
 
-const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи:
-1. Категорию — одну из четырёх:
-"geopolitics"  — ВСЁ военное и политическое: Украина, Иран, Израиль, Китай, США, НАТО, ООН, санкции, войны, конфликты, дипломатия, выборы мировых лидеров.
-"finance"      — экономика и деньги: биржи, курсы валют, ЦБ, ставки, нефть/газ как товар, отчёты компаний, крипто, сделки M&A, тарифы, ВВП, инфляция.
-"tech"         — технологии: ИИ, ПО, железо, стартапы, кибербезопасность, космос, электромобили, биотех.
-"lifestyle"    — всё остальное: спорт, культура, криминал, здоровье, общество, люди, погода, ДТП, ЖКХ.
+const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи категорию и тему.
 
-2. Тему (ent) — 1-3 слова, главный субъект новости для группировки похожих новостей: имя человека, страна, компания, событие.
-Примеры: "Иран", "ФРС", "Трамп", "Nvidia", "выборы в Молдове". Если явного субъекта нет — пустая строка.
+КАТЕГОРИИ (выбери одну):
+
+"geopolitics" — международная политика и военные темы: войны и конфликты,
+дипломатия, санкции, выборы и смена власти в других странах, действия
+НАТО/ООН/ЕС, отношения между странами, теракты, миграционные кризисы.
+
+"finance" — экономика, деньги, бизнес: курсы валют, биржи и котировки,
+решения ЦБ и ставки, инфляция и ВВП, крипто как актив, сделки M&A,
+отчётность компаний, тарифы и торговые войны, цены на сырьё как товар.
+
+"tech" — технологии и наука: ИИ и ПО, железо и гаджеты, стартапы и венчур,
+кибербезопасность, космос, биотех/медтех как индустрия, автопром
+(электромобили, беспилотники как технология).
+
+"lifestyle" — жизнь, культура, общество: спорт, кино/музыка/искусство,
+здоровье и медицина (не как индустрия), происшествия и криминал, погода
+и экология, наука как открытие (не как бизнес), знаменитости, соцтемы
+(образование, ЖКХ, транспорт).
+
+"other" — используй ТОЛЬКО если новость реально не описывает никакое
+событие/тему выше: чисто служебный/рекламный текст, анонс без содержания,
+нечитаемый обрывок. Это редкая категория, не запасной вариант для лени —
+почти любая настоящая новость подойдёт под одну из четырёх выше.
+
+ПРИ ПОГРАНИЧНЫХ СЛУЧАЯХ — приоритет:
+1. Военное/дипломатическое → всегда geopolitics, даже с экономическим
+   аспектом (санкции против компании — geopolitics, не finance)
+2. Деньги/бизнес конкретной компании или рынка → finance, даже если это
+   tech-компания (акции Nvidia — finance, не tech)
+3. Технология как продукт/индустрия → tech; та же технология как повод
+   для развлечения → lifestyle (ИИ-стартап привлёк инвестиции — tech;
+   нейросеть нарисовала смешную картинку — lifestyle)
+4. Если новость про людей/общество без чёткой темы выше → lifestyle,
+   не other
+
+Тему (ent) — 1-3 слова, главный субъект новости для группировки похожих
+новостей: имя человека, страна, компания, событие.
+Примеры: "Иран", "ФРС", "Трамп", "Nvidia", "выборы в Молдове". Если явного
+субъекта нет — пустая строка.
 
 Ответь ТОЛЬКО JSON-массивом, порядок сохрани:
 [{"i":0,"cat":"finance","ent":"ФРС"},{"i":1,"cat":"lifestyle","ent":""},...]`;
@@ -331,7 +373,7 @@ async function groqFetch(body, timeout = 20000, patient = false) {
 }
 
 async function classifyBatchGroq(items) {
-  const lines = items.map((it,i) => `${i}. [${it.sourceName}] ${it.title}: ${(it.description||"").slice(0,130)}`).join("\n");
+  const lines = items.map((it,i) => `${i}. [${it.sourceName}] ${it.title}: ${(it.description||"").slice(0,220)}`).join("\n");
   const d = await groqFetch({
     model: "openai/gpt-oss-20b", max_tokens: 2000, reasoning_effort: "low",
     messages: [{ role:"system", content: CAT_PROMPT }, { role:"user", content: "Статьи:\n" + lines }],
@@ -525,11 +567,22 @@ async function main() {
     const groups = groupArticles(items);
     groups.slice(0, 30).forEach(g => {
       const sources = [...new Set(g.map(x => x.sourceName))];
+      // Display bucket: same classification (cat) everywhere, but Western
+      // press gets routed to its own tabs ("Мир" / "Зарубежный лайфстайл")
+      // instead of mixing into the RU tabs. "other" is shared regardless
+      // of origin — genuinely uncategorizable content isn't worth splitting
+      // by press further. Local (tag-based) sources already have cat="local"
+      // from categorizeWithAI and pass through unchanged.
+      const isWestern = sources.some(s => WEST_PRESS_NAMES.has(s));
+      let bucket = cat;
+      if (cat === "other") bucket = "other";
+      else if (isWestern && (cat === "geopolitics" || cat === "finance")) bucket = "world";
+      else if (isWestern && (cat === "tech" || cat === "lifestyle")) bucket = "foreign_lifestyle";
       cards.push({
         id: g[0].link.replace(/[^a-z0-9]/gi,"").slice(-24),
         title: g[0].title,
         description: g[0].description,
-        cat, entity: g.map(x=>x.entity).find(Boolean) || "",
+        cat, bucket, entity: g.map(x=>x.entity).find(Boolean) || "",
         date: g.reduce((max,x) => x.date > max ? x.date : max, g[0].date),
         sources, link: g[0].link,
         raw: g.map(x => ({ title:x.title, description:x.description, link:x.link, sourceName:x.sourceName })),
