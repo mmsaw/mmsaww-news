@@ -2946,15 +2946,18 @@ async function shareCardScreenshot(cardId) {
     // Wait for styles to paint
     await new Promise(r => setTimeout(r, 120));
 
-    const canvas = await html2canvas(cardEl, {
-      backgroundColor: surface,
-      scale: Math.min(window.devicePixelRatio * 2, 4),
-      useCORS: true,
-      logging: false,
-      allowTaint: true,
-      scrollX: 0,
-      scrollY: -window.scrollY,
-    });
+    const canvas = await Promise.race([
+      html2canvas(cardEl, {
+        backgroundColor: surface,
+        scale: Math.min(window.devicePixelRatio * 2, 4),
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("html2canvas timeout")), 15000)),
+    ]);
 
     // Restore DOM
     brand.remove(); brand = null;
@@ -2970,14 +2973,23 @@ async function shareCardScreenshot(cardId) {
     // Share (mobile) or download (desktop)
     const isMobile = !!(navigator.share && navigator.canShare);
     if (isMobile) {
+      let settled = false;
       await new Promise(resolve => {
+        const done = () => { if (!settled) { settled = true; resolve(); } };
+        // toBlob's callback can, on some mobile browsers, simply never fire
+        // for certain canvas states — with no timeout that hangs the whole
+        // share flow forever with zero error and a permanently stuck button.
+        setTimeout(() => {
+          if (!settled) { _dlCanvas(canvas); done(); }
+        }, 8000);
         canvas.toBlob(async blob => {
-          if (!blob) { resolve(); return; }
+          if (settled) return;
+          if (!blob) { _dlCanvas(canvas); done(); return; }
           const file = new File([blob], "mmsaww-news.png", { type: "image/png" });
           if (navigator.canShare({ files: [file] })) {
             try { await navigator.share({ files: [file] }); } catch {}
           } else { _dlCanvas(canvas); }
-          resolve();
+          done();
         }, "image/png");
       });
     } else {
