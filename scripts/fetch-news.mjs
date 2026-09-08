@@ -663,10 +663,29 @@ async function main() {
   }
   console.log(`Translated: ${toTranslate.length} cards (${toTranslate.filter(c=>c.title_ru).length} succeeded)`);
 
+  // Trending topics — how many distinct cards mention the same entity in
+  // the last 8 hours. Pure aggregation over data we already have (entity
+  // was assigned during categorization above) — no extra AI calls, no
+  // extra fetches. Sustained repeat coverage of the same subject is a
+  // reasonable, cheap proxy for "this matters right now".
+  const trendWindow = Date.now() - 8 * 3600000;
+  const entityCounts = new Map();
+  for (const c of merged) {
+    if (!c.entity || new Date(c.firstSeenAt).getTime() < trendWindow) continue;
+    entityCounts.set(c.entity, (entityCounts.get(c.entity) || 0) + 1);
+  }
+  const trending = [...entityCounts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([entity, count]) => ({ entity, count }));
+  console.log(`Trending: ${trending.map(t => `${t.entity}(${t.count})`).join(", ") || "none"}`);
+
   const output = {
     generatedAt: new Date().toISOString(),
     categories: CATEGORIES,
     digests,
+    trending,
     cards: merged,
   };
 
