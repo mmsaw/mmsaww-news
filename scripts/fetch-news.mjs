@@ -279,7 +279,6 @@ function parseJinaMarkdown(text, src, targetUrl) {
   const domain = new URL(targetUrl).hostname.replace("www.", "");
   const out = [], seen = new Set();
   const linkRe = /(?<!!)\[([^\]]{15,200})\]\((https?:\/\/[^)]+)\)/g;
-  const imgRe = /!\[[^\]]*\]\((https?:\/\/[^)\s]+\.(?:jpe?g|png|webp|avif)[^)]*)\)/gi;
   let m;
   while ((m = linkRe.exec(text)) !== null && out.length < 30) {
     const [, rawTitle, link] = m;
@@ -294,21 +293,8 @@ function parseJinaMarkdown(text, src, targetUrl) {
     if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
     seen.add(link);
     const date = extractDateFromUrl(link) || new Date(Date.now() - out.length * 16 * 60000);
-    // Look for a nearby thumbnail — Jina usually places the article's image
-    // right before or after its headline link in a listing page. A 400-char
-    // window on each side catches this without accidentally grabbing an
-    // unrelated image from elsewhere in the page.
-    let image = null;
-    const windowStart = Math.max(0, m.index - 400);
-    const windowEnd = Math.min(text.length, m.index + rawTitle.length + 400);
-    const nearby = text.slice(windowStart, windowEnd);
-    imgRe.lastIndex = 0;
-    const imgMatch = imgRe.exec(nearby);
-    if (imgMatch && !/logo|icon|avatar|sprite|placeholder|1x1|pixel/i.test(imgMatch[1])) {
-      image = imgMatch[1];
-    }
     out.push({
-      title, description: title, link, date: date.toISOString(), image,
+      title, description: title, link, date: date.toISOString(),
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
     });
   }
@@ -339,18 +325,8 @@ function parseRSSXML(xml, src) {
       const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
       if (Date.now() - date.getTime() > maxMs) continue;
     }
-    // Image: try the common RSS conventions in order, no extra request needed
-    let image = null;
-    let m2 = block.match(/<media:thumbnail[^>]*url=["']([^"']+)["']/i)
-          || block.match(/<media:content[^>]*url=["']([^"']+)["'][^>]*medium=["']image["']/i)
-          || block.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*type=["']image\//i);
-    if (m2) image = m2[1];
-    if (!image) {
-      const imgInDesc = block.match(/<img[^>]*src=["']([^"']+)["']/i);
-      if (imgInDesc) image = imgInDesc[1];
-    }
     out.push({
-      title, description: desc, link, date: date.toISOString(), image,
+      title, description: desc, link, date: date.toISOString(),
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
     });
   }
@@ -618,7 +594,6 @@ async function main() {
         title: g[0].title,
         description: g[0].description,
         cat, bucket, entity: g.map(x=>x.entity).find(Boolean) || "",
-        image: g.map(x=>x.image).find(Boolean) || null,
         date: g.reduce((max,x) => x.date > max ? x.date : max, g[0].date),
         sources, link: g[0].link,
         raw: g.map(x => ({ title:x.title, description:x.description, link:x.link, sourceName:x.sourceName })),
