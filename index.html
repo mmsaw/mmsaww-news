@@ -2835,17 +2835,20 @@ async function shareCardScreenshot(cardId) {
   const btn = cardEl.querySelector(".share-screenshot-btn");
   if (btn) { btn.classList.add("loading"); btn.innerHTML = "⏳ Создаём..."; }
 
-  const styleEl = document.createElement("style");
-  styleEl.id = "__ss_style";
-  let brand = null;
-  let imgWrap = null;
+  // Work on a throwaway CLONE, not the live card. Everything that used to
+  // be "hide this, remember to restore it" on the real DOM (image, buttons,
+  // animation state, expand height) is instead just built correctly once
+  // on the clone and then discarded — nothing about the visible page is
+  // ever at risk, and there's no restoration logic left to get wrong.
+  const ssId = "ss-clone-" + Date.now();
+  let ghost = null;
+  let styleEl = null;
 
   try {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
     const cs = getComputedStyle(document.documentElement);
     const g = v => cs.getPropertyValue(v).trim();
 
-    // Resolve all CSS vars to real values — html2canvas can't read var()
     const surface = g("--surface") || (isDark ? "#111009" : "#ffffff");
     const bg      = g("--bg")      || (isDark ? "#0d0d08" : "#f7f7f5");
     const text    = g("--text")    || (isDark ? "#f0efe8" : "#111111");
@@ -2859,73 +2862,22 @@ async function shareCardScreenshot(cardId) {
     const mono    = g("--mono")    || "monospace";
     const red     = g("--red")     || "#c0392b";
 
-    // Inject resolved vars as real CSS properties scoped to the card
-    styleEl.textContent = `
-      #card-${cardId}, #card-${cardId} * {
-        --bg:${bg}; --bg2:${isDark?"#161610":"#efefed"};
-        --surface:${surface}; --border:${border}; --border2:${border2};
-        --text:${text}; --text2:${text2}; --text3:${text3};
-        --accent:${accent}; --accent2:${accent2}; --accent-bg:${accentBg};
-        --mono:${mono}; --red:${red}; --green:#27ae60;
-        --shadow-card:0 1px 4px rgba(0,0,0,.10);
-      }
-      /* html2canvas has known issues with cross-origin @font-face fonts —
-         force the card back to a locally-available system font just for
-         the capture, so the screenshot never depends on an external font
-         load succeeding cleanly (this was silently breaking the export
-         after Manrope was added for headlines). */
-      #card-${cardId}, #card-${cardId} * {
-        font-family: -apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif !important;
-      }
-      /* Freeze every animation/transition inside the card for the capture —
-         covers the NEW-badge pulse, entrance fade, and anything else that
-         could be mid-frame and cause a blank or blurry screenshot */
-      #card-${cardId} *, #card-${cardId} *::after, #card-${cardId} *::before {
-        animation: none !important;
-        transition: none !important;
-        opacity: 1 !important;
-      }`;
-    document.head.appendChild(styleEl);
+    // Build the clone
+    ghost = cardEl.cloneNode(true);
+    ghost.removeAttribute("id");
+    ghost.id = ssId;
+    ghost.classList.add("expanded"); // full content, not the collapsed 200px view
 
-    // Expand card so full content is captured
-    const origH = cardEl.style.height;
-    const origO = cardEl.style.overflow;
-    cardEl.style.height = "auto";
-    cardEl.style.overflow = "visible";
+    // Strip anything that could interfere or shouldn't be in the shot —
+    // this is the ONE place images/buttons get removed, on a node the
+    // user never sees, so there's nothing to "route around" later.
+    ghost.querySelectorAll(
+      ".cimg-wrap,.share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row"
+    ).forEach(el => el.remove());
+    if (ghost.classList.contains("has-img")) ghost.classList.remove("has-img");
 
-    // Kill the entrance animation before capturing. If the card just
-    // rendered (fresh filter switch, background refresh, or a late card
-    // in the staggered cascade), html2canvas can catch it mid-fade —
-    // literally opacity:0 at the moment of capture, producing a blank/
-    // white image. Setting animation:none snaps it straight to its
-    // final resting state regardless of timing.
-    const origAnim = cardEl.style.animation;
-    cardEl.style.animation = "none";
-    cardEl.style.opacity = "1";
-    cardEl.style.transform = "none";
-
-    // Hide action buttons from screenshot — and the article thumbnail, since
-    // it's loaded from an arbitrary third-party domain that almost never
-    // sends CORS headers permitting canvas export. Even with allowTaint
-    // letting it draw, that permanently taints the canvas and toDataURL()
-    // throws afterward — breaking the whole share feature over one image.
-    const hideEls = cardEl.querySelectorAll(
-      ".share-screenshot-btn,.expand-close,.card-ai-ask,.card-ai-ask-row"
-    );
-    hideEls.forEach(el => { el.dataset.ssHide = el.style.display; el.style.display = "none"; });
-
-    // The thumbnail needs to be fully DETACHED, not just display:none —
-    // html2canvas clones the DOM to render it, and some versions still
-    // attempt to resolve/draw a hidden element's image resource during
-    // that clone step. Removing the node outright leaves nothing for it
-    // to touch, then it's reinserted in the same spot afterward.
-    imgWrap = cardEl.querySelector(".cimg-wrap");
-    let imgWrapNext = null;
-    if (imgWrap) { imgWrapNext = imgWrap.nextSibling; imgWrap.remove(); }
-
-    // Add DOM branding element (reliable, no canvas font issues)
-    brand = document.createElement("div");
-    brand.id = "__ss_brand";
+    // Branding footer
+    const brand = document.createElement("div");
     brand.style.cssText = [
       "margin-top:12px", "padding:8px 0 4px",
       `border-top:1px solid ${border}`,
@@ -2937,38 +2889,52 @@ async function shareCardScreenshot(cardId) {
       `color:${text};font-family:-apple-system,sans-serif;text-transform:uppercase">MMSAWW</span>` +
       `<span style="font-size:10px;font-weight:400;letter-spacing:.12em;` +
       `color:${text3};font-family:-apple-system,sans-serif;text-transform:uppercase"> NEWS</span>`;
-    cardEl.appendChild(brand);
+    ghost.appendChild(brand);
 
-    // Force a reflow so the animation:none / opacity:1 overrides above
-    // are actually applied before html2canvas reads computed styles
-    void cardEl.offsetHeight;
+    // Positioned off-screen (not display:none — html2canvas needs real
+    // layout to measure) so it never flashes on screen for the user.
+    ghost.style.cssText += `;position:fixed;top:0;left:-9999px;width:${cardEl.offsetWidth}px;height:auto;max-height:none;overflow:visible;animation:none;opacity:1;transform:none;`;
 
-    // Wait for styles to paint
+    styleEl = document.createElement("style");
+    styleEl.textContent = `
+      #${ssId}, #${ssId} * {
+        --bg:${bg}; --bg2:${isDark?"#161610":"#efefed"};
+        --surface:${surface}; --border:${border}; --border2:${border2};
+        --text:${text}; --text2:${text2}; --text3:${text3};
+        --accent:${accent}; --accent2:${accent2}; --accent-bg:${accentBg};
+        --mono:${mono}; --red:${red}; --green:#27ae60;
+        --shadow-card:0 1px 4px rgba(0,0,0,.10);
+      }
+      /* html2canvas has known issues with cross-origin @font-face fonts —
+         use a locally-available system font for the capture so it never
+         depends on an external font load succeeding cleanly. */
+      #${ssId}, #${ssId} * {
+        font-family: -apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif !important;
+      }
+      #${ssId} *, #${ssId} *::after, #${ssId} *::before {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+      }
+      #${ssId} .card-expand { max-height:none !important; overflow:visible !important; }
+    `;
+    document.head.appendChild(styleEl);
+    document.body.appendChild(ghost);
+
+    // Force layout + one frame for styles to settle before capture
+    void ghost.offsetHeight;
     await new Promise(r => setTimeout(r, 120));
 
     const canvas = await Promise.race([
-      html2canvas(cardEl, {
+      html2canvas(ghost, {
         backgroundColor: surface,
         scale: Math.min(window.devicePixelRatio * 2, 4),
         useCORS: true,
         logging: false,
         allowTaint: true,
-        scrollX: 0,
-        scrollY: -window.scrollY,
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error("html2canvas timeout")), 15000)),
     ]);
-
-    // Restore DOM
-    brand.remove(); brand = null;
-    styleEl.remove();
-    cardEl.style.height = origH;
-    cardEl.style.overflow = origO;
-    cardEl.style.animation = origAnim;
-    cardEl.style.opacity = "";
-    cardEl.style.transform = "";
-    hideEls.forEach(el => { el.style.display = el.dataset.ssHide || ""; delete el.dataset.ssHide; });
-    if (imgWrap) { cardEl.insertBefore(imgWrap, imgWrapNext); }
 
     // Share (mobile) or download (desktop)
     const isMobile = !!(navigator.share && navigator.canShare);
@@ -2999,18 +2965,11 @@ async function shareCardScreenshot(cardId) {
   } catch(e) {
     console.error("Screenshot:", e);
   } finally {
-    // Always clean up
-    brand?.remove();
-    document.getElementById("__ss_style")?.remove();
-    const el = document.getElementById("card-" + cardId);
-    el?.querySelectorAll("[data-ss-hide]").forEach(e => {
-      e.style.display = e.dataset.ssHide || ""; delete e.dataset.ssHide;
-    });
-    // Safety net: if something threw before the explicit re-insertion above
-    // ran, make sure the thumbnail isn't left permanently detached
-    if (imgWrap && !imgWrap.isConnected && el) {
-      el.insertBefore(imgWrap, el.firstChild);
-    }
+    // The clone and its scoped style are the ONLY things that ever changed —
+    // just remove them. The live card was never touched, so there's nothing
+    // else to restore.
+    ghost?.remove();
+    styleEl?.remove();
     if (btn) { btn.classList.remove("loading"); btn.innerHTML = "📸 Поделиться"; }
   }
 }
