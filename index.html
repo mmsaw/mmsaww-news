@@ -254,6 +254,14 @@ span.srcfbtn.err.on {
 
 /* TICKER */
 .ticker-wrap{overflow:hidden;background:var(--text);padding:6px 0}
+.trend-wrap{display:flex;align-items:center;gap:10px;padding:9px 24px;background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden}
+.trend-label{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;letter-spacing:.03em;text-transform:uppercase}
+.trend-scroll{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.trend-scroll::-webkit-scrollbar{display:none}
+.trend-chip{display:flex;align-items:center;gap:5px;padding:4px 11px;background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--ui);font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0;transition:all .15s}
+.trend-chip:hover{border-color:var(--accent);color:var(--accent)}
+.trend-chip:active{transform:scale(.94)}
+.trend-count{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--bg2);padding:1px 5px;border-radius:8px}
 .ticker-inner{display:flex;animation:tick 70s linear infinite;width:max-content}
 .ticker-inner:hover{animation-play-state:paused}
 @keyframes tick{to{transform:translateX(-50%)}}
@@ -312,6 +320,7 @@ span.srcfbtn.err.on {
 .ctags{display:flex;flex-wrap:wrap;gap:4px}
 .cbadge{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:10px;font-weight:600}
 .csub{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.csub-hot{background:var(--accent-bg);color:var(--accent2);border-color:var(--accent);font-weight:700}
 .csub.yaroslavl{background:#EAF4FB;color:#1A6DA5;border-color:#AED6F1}
 .csub.moscow   {background:#F4ECF7;color:#7D3C98;border-color:#D7BDE2}
 .csub.ru-eco   {background:#EAFAF1;color:#1E8449;border-color:#A9DFBF}
@@ -326,6 +335,8 @@ span.srcfbtn.err.on {
 .entity-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:14px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);font-family:var(--ui);font-size:13px;color:var(--accent2)}
 .entity-banner-label b{color:var(--accent2)}
 .entity-banner-close{background:none;border:1px solid var(--accent);border-radius:14px;padding:4px 10px;font-size:11px;color:var(--accent2);cursor:pointer;transition:all .15s}
+.entity-banner-mute{background:none;border:1px solid var(--border);border-radius:14px;padding:4px 10px;font-size:11px;color:var(--text3);cursor:pointer;transition:all .15s}
+.entity-banner-mute:hover{border-color:var(--red);color:var(--red)}
 .entity-banner-close:hover{background:var(--accent);color:#fff}
 .ctime{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0}
 .csaved{color:var(--accent);margin-right:5px;font-size:11px}
@@ -597,6 +608,12 @@ span.srcfbtn.err.on {
 .model-pill:hover:not(.active){color:var(--text2)}
 .model-key-row { display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0; }
 .model-key-row.vis { display:flex; }
+.mute-mgmt-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid var(--border);margin-top:6px}
+.mute-mgmt-list{display:flex;flex-wrap:wrap;gap:6px}
+.mute-mgmt-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-family:var(--ui);font-size:11px;color:var(--text2);transition:all .15s}
+.mute-mgmt-chip:hover{border-color:var(--text3)}
+.mute-mgmt-chip.muted{background:var(--red);color:#fff;border-color:var(--red);opacity:.85}
+.mute-mgmt-empty{font-size:11px;color:var(--text3);font-family:var(--mono)}
 .model-key-hint { font-size:11px;color:var(--text3);font-family:var(--mono); }
 .model-key-hint a { color:var(--accent2,#b8971f);text-decoration:none; }
 .model-status-ok  { font-size:11px;color:#16a34a;font-family:var(--mono); }
@@ -862,6 +879,10 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
       <span class="model-key-hint" style="margin-left:10px;opacity:.5" title="Если модель в логах Groq не совпадает с этой сборкой — у вас открыта старая закэшированная вкладка/PWA. Полностью закройте и переоткройте приложение.">· сборка 2026-09-03 dedup-fix</span>
     </div>
 
+    <div class="mute-mgmt-row">
+      <span class="settings-label" style="min-width:120px">🔇 Скрытые источники:</span>
+      <div class="mute-mgmt-list" id="mute-src-list"></div>
+    </div>
 
   </div>
   <div class="fbar" id="fbar"></div>
@@ -935,6 +956,12 @@ button:focus-visible, a:focus-visible, .card:focus-visible, .fbtn:focus-visible 
 <!-- TICKER -->
 <div class="ticker-wrap" id="ticker-wrap" style="display:none">
   <div class="ticker-inner" id="ticker-inner"></div>
+</div>
+
+<!-- TRENDING TOPICS -->
+<div class="trend-wrap" id="trend-wrap" style="display:none">
+  <span class="trend-label">🔥 Обсуждают</span>
+  <div class="trend-scroll" id="trend-scroll"></div>
 </div>
 
 
@@ -1070,6 +1097,7 @@ let state = {
   groqKey: "",
   sentimentDone: false,
   digests: {},           // pre-computed server-side, keyed by category id ("all", "geopolitics", ...)
+  trending: [],          // [{entity, count}, ...] pre-computed server-side
   dataGeneratedAt: null, // when the server last collected news
   lastUpdated: null,
 };
@@ -1218,6 +1246,29 @@ function isSaved(link) {
   return link ? getSavedSet().has(link) : false;
 }
 
+const MUTED_ENTITIES_KEY = "mmsaww_muted_entities_v1";
+const MUTED_SOURCES_KEY  = "mmsaww_muted_sources_v1";
+function getMutedEntities() {
+  try { return new Set(JSON.parse(localStorage.getItem(MUTED_ENTITIES_KEY) || "[]")); }
+  catch(e) { return new Set(); }
+}
+function getMutedSources() {
+  try { return new Set(JSON.parse(localStorage.getItem(MUTED_SOURCES_KEY) || "[]")); }
+  catch(e) { return new Set(); }
+}
+function toggleMutedEntity(entity) {
+  if (!entity) return;
+  const s = getMutedEntities();
+  if (s.has(entity)) s.delete(entity); else s.add(entity);
+  try { localStorage.setItem(MUTED_ENTITIES_KEY, JSON.stringify([...s])); } catch(e) {}
+}
+function toggleMutedSource(source) {
+  if (!source) return;
+  const s = getMutedSources();
+  if (s.has(source)) s.delete(source); else s.add(source);
+  try { localStorage.setItem(MUTED_SOURCES_KEY, JSON.stringify([...s])); } catch(e) {}
+}
+
 function markCardRead(link) {
   if (!link) return;
   const s = getReadSet();
@@ -1268,6 +1319,7 @@ async function loadNews() {
       isNew: !isReadCard(c.link),
     }));
     state.digests = data.digests || {};
+    state.trending = data.trending || [];
     state.dataGeneratedAt = data.generatedAt ? new Date(data.generatedAt) : null;
     state.loadError = null;
   } catch (e) {
@@ -1279,6 +1331,7 @@ async function loadNews() {
   renderHeader();
   renderStatusBar();
   renderTicker();
+  renderTrending();
   if (!expandedId) renderContent();
 
   // Digest is pre-computed server-side — just display whichever one matches
@@ -1427,6 +1480,20 @@ function renderTicker() {
   // Ticker removed
 }
 
+function renderTrending() {
+  const wrap = document.getElementById("trend-wrap");
+  const scroll = document.getElementById("trend-scroll");
+  if (!wrap || !scroll) return;
+  const items = state.trending || [];
+  if (!items.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  scroll.innerHTML = items.map(t =>
+    `<button class="trend-chip" onclick="filterByEntity('${escHtml(t.entity).replace(/'/g,"&#39;")}')">
+       ${escHtml(t.entity)} <span class="trend-count">${t.count}</span>
+     </button>`
+  ).join("");
+}
+
 // ── Filter helpers ───────────────────────────────────────────────────────────
 function visibleCards(allCards) {
   let cards = allCards;
@@ -1451,6 +1518,14 @@ function visibleCards(allCards) {
     cards = cards.filter(c => (c.sources || []).some(s => !WEST_SOURCE_NAMES.has(s)));
   } else if (state.pressFilt === "west") {
     cards = cards.filter(c => (c.sources || []).some(s => WEST_SOURCE_NAMES.has(s)));
+  }
+  const mutedEntities = getMutedEntities();
+  const mutedSources  = getMutedSources();
+  if (mutedEntities.size) {
+    cards = cards.filter(c => !c.entity || !mutedEntities.has(c.entity));
+  }
+  if (mutedSources.size) {
+    cards = cards.filter(c => !(c.sources || []).some(s => mutedSources.has(s)));
   }
   return cards;
 }
@@ -1501,6 +1576,13 @@ function clearEntityFilter() {
   renderContent();
 }
 
+function muteEntityAndClose(entity) {
+  haptic(10);
+  toggleMutedEntity(entity);
+  state.entityFilter = null;
+  renderContent();
+}
+
 function renderEntityTimeline() {
   const el = document.getElementById("content");
   const entity = state.entityFilter;
@@ -1512,6 +1594,7 @@ function renderEntityTimeline() {
 
   const banner = `<div class="entity-banner">
     <span class="entity-banner-label">🔖 Тема: <b>${escHtml(entity)}</b></span>
+    <button class="entity-banner-mute" onclick="muteEntityAndClose('${escHtml(entity).replace(/'/g,"&#39;")}')" title="Больше не показывать эту тему">🔇 Скрыть тему</button>
     <button class="entity-banner-close" onclick="clearEntityFilter()">✕ Закрыть</button>
   </div>`;
 
@@ -1663,7 +1746,12 @@ function cardHTML(item) {
   const pendingRU = state.lang === "ru" && item.needsTranslation && !item.title_ru;
   const transLabel = pendingRU ? `<span class="csynth" style="opacity:.6" title="Сервер переведёт на следующем цикле сбора (каждые ~20 мин)">🌐 не переведено</span>` : "";
 
-  const srcCnt    = item.sources?.length>1 ? `<span class="csub">${item.sources.length} ист.</span>` : "";
+  const srcN = item.sources?.length || 1;
+  const srcCnt = srcN > 1
+    ? (srcN >= 4
+        ? `<span class="csub csub-hot" title="Пишут ${srcN} источников — вероятно важная новость">🔥 ${srcN} источников</span>`
+        : `<span class="csub">${srcN} ист.</span>`)
+    : "";
   const tagBadge  = scM ? `<span class="csub ${scM.cls}">${scM.label}</span>` : (item.tag ? `<span class="csub">${item.tag}</span>` : "");
   const synthBadge = item.synthesized ? `<span class="csynth">⟳ синтез</span>` : "";
   const entityChip = item.entity ? `<span class="centity" onclick="event.stopPropagation();filterByEntity('${escHtml(item.entity).replace(/'/g,"&#39;")}')">🔖 ${escHtml(item.entity)}</span>` : "";
@@ -1773,7 +1861,23 @@ function toggleTheme() {
 }
 
 function toggleSettings() {
-  document.getElementById("api-panel").classList.toggle("open");
+  const panel = document.getElementById("api-panel");
+  panel.classList.toggle("open");
+  if (panel.classList.contains("open")) renderMuteManagement();
+}
+
+function renderMuteManagement() {
+  const listEl = document.getElementById("mute-src-list");
+  if (!listEl) return;
+  const allSources = [...new Set(state.cards.flatMap(c => c.sources || []))].sort();
+  const muted = getMutedSources();
+  if (!allSources.length) { listEl.innerHTML = `<span class="mute-mgmt-empty">нет данных</span>`; return; }
+  listEl.innerHTML = allSources.map(name => {
+    const isMuted = muted.has(name);
+    return `<button class="mute-mgmt-chip${isMuted ? " muted" : ""}" onclick="toggleMutedSource('${name.replace(/'/g,"&#39;")}');renderMuteManagement();renderContent();">
+      ${isMuted ? "🔇" : "🔊"} ${escHtml(name)}
+    </button>`;
+  }).join("");
 }
 
 // ── Sub-category helpers ──────────────────────────────────────────────────────
