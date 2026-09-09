@@ -38,7 +38,7 @@ const CATEGORIES = [
 // display-only split by press origin, layered on top of the same unified
 // classification below (card.cat stays the same regardless of source;
 // only card.bucket, computed after classification, differs).
-const WEST_PRESS_NAMES = new Set(["AP","Al Jazeera","BBC","Politico"]);
+const WEST_PRESS_NAMES = new Set(["AP","Al Jazeera","BBC","Politico","Reuters"]);
 
 
 const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи категорию и тему.
@@ -289,6 +289,14 @@ function parseJinaMarkdown(text, src, targetUrl) {
       .replace(/^#{1,6}\s*/, "")
       .trim();
     if (title.length < 20) continue;
+    // Reject template-placeholder leakage — some sites' JS-rendered listing
+    // widgets get scraped by Jina before the template engine has filled in
+    // real values, leaving raw "{{icon}}{{headline}}"-style syntax where a
+    // real headline should be. If curly-brace placeholders make up a large
+    // chunk of the "title", there's no real content here — skip it rather
+    // than surface template syntax as if it were news.
+    const placeholderChars = (title.match(/\{\{?[a-zA-Z0-9_]+\}?\}/g) || []).join("").length;
+    if (placeholderChars > title.length * 0.3) continue;
     if (seen.has(link)) continue;
     if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
     seen.add(link);
