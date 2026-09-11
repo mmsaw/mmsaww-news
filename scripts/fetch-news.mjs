@@ -73,8 +73,11 @@ tech/lifestyle) как для любой другой новости.
 
 "other" — используй ТОЛЬКО если новость реально не описывает никакое
 событие/тему выше: чисто служебный/рекламный текст, анонс без содержания,
-нечитаемый обрывок. Это редкая категория, не запасной вариант для лени —
-почти любая настоящая новость подойдёт под одну из категорий выше.
+нечитаемый обрывок, ИЛИ название раздела/рубрики сайта без реального
+события (например "Образовательные программы", "Техническая поддержка",
+"Школа управления" — это пункты меню, а не новости). Это редкая
+категория, не запасной вариант для лени — почти любая настоящая новость
+подойдёт под одну из категорий выше.
 
 ПРИ ПОГРАНИЧНЫХ СЛУЧАЯХ — приоритет:
 1. Военное/дипломатическое → всегда geopolitics, даже с экономическим
@@ -297,6 +300,14 @@ function parseJinaMarkdown(text, src, targetUrl) {
     // than surface template syntax as if it were news.
     const placeholderChars = (title.match(/\{\{?[a-zA-Z0-9_]+\}?\}/g) || []).join("").length;
     if (placeholderChars > title.length * 0.3) continue;
+    // Reject navigation/menu-item noise — Jina sometimes picks up section
+    // links alongside real headlines ("Образовательные программы",
+    // "Техническая поддержка", "Школа управления РБК"). These pass the
+    // length check but are generic 2-3 word category/utility names, not
+    // real headlines — real news almost always describes an actual event
+    // (who did what) and reads as a longer phrase. A genuine headline under
+    // 4 words is rare enough that this is a safe, cheap structural filter.
+    if (title.split(/\s+/).length < 4) continue;
     if (seen.has(link)) continue;
     if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
     seen.add(link);
