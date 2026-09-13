@@ -29,6 +29,7 @@ const CATEGORIES = [
   { id:"lifestyle",        label:"Лайфстайл",           color:"#e879f9" },
   { id:"world",            label:"Мир",                 color:"#fb923c" },
   { id:"foreign_lifestyle",label:"Зарубежный лайфстайл",color:"#38bdf8" },
+  { id:"geek",             label:"Гик-новости",         color:"#818cf8" },
   { id:"other",            label:"Прочее",              color:"#9ca3af" },
   { id:"local",            label:"Ярославль & Москва",  color:"#60a5fa" },
 ];
@@ -39,6 +40,16 @@ const CATEGORIES = [
 // classification below (card.cat stays the same regardless of source;
 // only card.bucket, computed after classification, differs).
 const WEST_PRESS_NAMES = new Set(["AP","Al Jazeera","BBC","Politico","Reuters"]);
+
+// Habr covers real tech/finance/lifestyle topics per the unified classifier,
+// but reads at a much more niche/applied level than mainstream coverage of
+// the same topics (a specific library release vs. a national AI policy
+// story) — all of it goes to its own tab instead of mixing into the
+// regular RU category tabs. Unlike "other", this ISN'T about content
+// quality — it's purely about audience/level, so it applies regardless of
+// which cat the classifier assigned (except "local"/"other", which stay
+// where they are for everyone).
+const GEEK_SOURCE_NAMES = new Set(["Habr"]);
 
 
 const CAT_PROMPT = `Ты редактор новостного агрегатора. Для каждой новости определи категорию и тему.
@@ -604,8 +615,11 @@ async function main() {
       // by press further. Local (tag-based) sources already have cat="local"
       // from categorizeWithAI and pass through unchanged.
       const isWestern = sources.some(s => WEST_PRESS_NAMES.has(s));
+      const isGeek = sources.some(s => GEEK_SOURCE_NAMES.has(s));
       let bucket = cat;
       if (cat === "other") bucket = "other";
+      else if (cat === "local") bucket = "local";
+      else if (isGeek) bucket = "geek";
       else if (isWestern && (cat === "geopolitics" || cat === "finance")) bucket = "world";
       else if (isWestern && (cat === "tech" || cat === "lifestyle")) bucket = "foreign_lifestyle";
       cards.push({
