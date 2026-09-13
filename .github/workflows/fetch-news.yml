@@ -1,18 +1,16 @@
 name: Fetch News
 
 on:
-  schedule:
-    # Every 20 minutes. GitHub sometimes delays cron by a few minutes under
-    # load - that's fine here, we're not chasing to-the-second freshness.
-    - cron: "*/20 * * * *"
-  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+  # Scheduling now happens via an external cron (cron-job.org) calling this
+  # workflow_dispatch endpoint on a reliable ~20-minute cadence — GitHub's
+  # own `schedule:` trigger is documented as best-effort and can fire at
+  # unpredictable times. Running BOTH at once meant they could occasionally
+  # land close together and both try to push to `main` at the same moment,
+  # which is the most likely cause of the "fatal error in commit_refs" /
+  # "[remote rejected] main -> main" push failure — GitHub's own ref-locking
+  # rejecting a genuinely concurrent push, not a real problem with the data.
+  workflow_dispatch: {}
 
-# A new scheduled run automatically cancels whatever's still running instead
-# of queuing behind it. Each run produces a complete, self-contained
-# snapshot (not an incremental update depending on the previous run), so
-# there's no correctness reason to let an old run finish first — and if one
-# ever gets stuck (e.g. a rate-limit retry storm), this stops it from
-# silently blocking every scheduled run after it forever.
 concurrency:
   group: fetch-news
   cancel-in-progress: true
@@ -43,5 +41,15 @@ jobs:
           git config user.name "news-bot"
           git config user.email "news-bot@users.noreply.github.com"
           git add data/news.json
-          git diff --staged --quiet || git commit -m "Update news data [skip ci]"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "Update news data [skip ci]"
+          # A push can still be transiently rejected (GitHub-side hiccup, or
+          # a run that started just before this one hadn't finished pushing
+          # yet) even with a single trigger source. Pull-rebase-retry once
+          # before giving up, instead of failing the whole run over it.
+          for attempt in 1 2 3; do
+            if git push; then break; fi
+            echo "Push failed (attempt $attempt) — pulling latest and retrying..."
+            git pull --rebase origin main
+            sleep 3
+          done
