@@ -1315,6 +1315,9 @@ async function loadNews() {
       firstSeenAt: new Date(c.firstSeenAt || c.date),
       // Fallback for cards collected before the Мир/Зарубежный лайфстайл split
       bucket: c.bucket || c.cat,
+      // Fallback true for cards collected before this field existed — don't
+      // suddenly show "Нет данных" on everything already in the feed
+      dateReliable: c.dateReliable !== false,
       summary: c.description,
       summary_ru: c.description_ru,
       isNew: !isReadCard(c.link),
@@ -1773,7 +1776,7 @@ function cardHTML(item) {
   return `<div class="card" id="card-${item.id}" style="--acc:${cat.color}" onclick="toggleArticle('${item.id}')">
     <div class="ch">
       <div class="ctags">${catBadge}${tagBadge}${entityChip}${synthBadge}${srcCnt}${transLabel}</div>
-      <span class="ctime">${savedStar}${formatTime(item.date)}</span>
+      <span class="ctime"${item.dateReliable === false ? ' title="Точное время публикации неизвестно — источник его не сообщает"' : ''}>${savedStar}${item.dateReliable === false ? "Нет данных" : formatTime(item.date)}</span>
     </div>
     <h3 class="ctitle">${escHtml(dTitle)}${item.isNew ? '<span class="card-new-badge">NEW</span>' : ""}</h3>
     ${perspHTML}
