@@ -240,6 +240,47 @@ function extractDateFromUrl(url) {
   return dt;
 }
 
+// Looks for an actual date/time string near a headline in Jina-scraped
+// listing text -- many sites show "2 часа назад" or "вчера, 14:32" right
+// next to each headline. When found, this is a REAL timestamp (not a
+// guess), unlike the synthetic list-position fallback used when nothing
+// here matches either. A tight window keeps this from picking up a
+// neighboring article's timestamp instead of the right one.
+function findNearbyDate(text, matchIndex, titleLen) {
+  const start = Math.max(0, matchIndex - 150);
+  const end   = Math.min(text.length, matchIndex + titleLen + 150);
+  const nearby = text.slice(start, end);
+
+  let m = nearby.match(/(\d+)\s*(час|часа|часов)\s*назад/i);
+  if (m) return new Date(Date.now() - parseInt(m[1],10) * 3600000);
+
+  m = nearby.match(/(\d+)\s*(минут[аы]?|мин)\s*назад/i);
+  if (m) return new Date(Date.now() - parseInt(m[1],10) * 60000);
+
+  if (/только\s*что/i.test(nearby)) return new Date();
+
+  m = nearby.match(/вчера[,\s]*(?:в\s*)?(\d{1,2}):(\d{2})/i);
+  if (m) {
+    const d = new Date(Date.now() - 86400000);
+    d.setHours(parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+    return d;
+  }
+  if (/\bвчера\b/i.test(nearby)) {
+    const d = new Date(Date.now() - 86400000);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  }
+
+  m = nearby.match(/сегодня[,\s]*(?:в\s*)?(\d{1,2}):(\d{2})/i);
+  if (m) {
+    const d = new Date();
+    d.setHours(parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+    return d;
+  }
+
+  return null;
+}
+
 function tokenSet(s) {
   const clean = s.toLowerCase()
     .replace(/[«»""„‟]/g," ")
@@ -322,9 +363,12 @@ function parseJinaMarkdown(text, src, targetUrl) {
     if (seen.has(link)) continue;
     if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
     seen.add(link);
-    const date = extractDateFromUrl(link) || new Date(Date.now() - out.length * 16 * 60000);
+    const urlDate = extractDateFromUrl(link);
+    const nearbyDate = urlDate ? null : findNearbyDate(text, m.index, rawTitle.length);
+    const dateReliable = !!(urlDate || nearbyDate);
+    const date = urlDate || nearbyDate || new Date(Date.now() - out.length * 16 * 60000);
     out.push({
-      title, description: title, link, date: date.toISOString(),
+      title, description: title, link, date: date.toISOString(), dateReliable,
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
     });
   }
@@ -349,14 +393,18 @@ function parseRSSXML(xml, src) {
       if (m) link = m[1];
     }
     const rawDate = grab("pubDate") || grab("published") || grab("updated");
-    const date = rawDate ? new Date(rawDate) : (extractDateFromUrl(link) || new Date());
+    const pubDate = rawDate ? new Date(rawDate) : null;
+    const pubDateOk = !!(pubDate && !isNaN(pubDate.getTime()));
+    const urlDate = pubDateOk ? null : extractDateFromUrl(link);
+    const dateReliable = pubDateOk || !!urlDate;
+    const date = pubDateOk ? pubDate : (urlDate || new Date());
     if (!title || title.length < 5) continue;
     if (src.maxAgeDays) {
       const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
       if (Date.now() - date.getTime() > maxMs) continue;
     }
     out.push({
-      title, description: desc, link, date: date.toISOString(),
+      title, description: desc, link, date: date.toISOString(), dateReliable,
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
     });
   }
@@ -622,12 +670,18 @@ async function main() {
       else if (isGeek) bucket = "geek";
       else if (isWestern && (cat === "geopolitics" || cat === "finance")) bucket = "world";
       else if (isWestern && (cat === "tech" || cat === "lifestyle")) bucket = "foreign_lifestyle";
+      // Use whichever raw item has the latest date — but carry along THAT
+      // item's own reliability flag, not just its timestamp, so a merged
+      // card doesn't inherit a confident-looking time from a source that
+      // was actually guessing.
+      const latest = g.reduce((best,x) => x.date > best.date ? x : best, g[0]);
       cards.push({
         id: g[0].link.replace(/[^a-z0-9]/gi,"").slice(-24),
         title: g[0].title,
         description: g[0].description,
         cat, bucket, entity: g.map(x=>x.entity).find(Boolean) || "",
-        date: g.reduce((max,x) => x.date > max ? x.date : max, g[0].date),
+        date: latest.date,
+        dateReliable: latest.dateReliable !== false,
         sources, link: g[0].link,
         raw: g.map(x => ({ title:x.title, description:x.description, link:x.link, sourceName:x.sourceName })),
         needsTranslation: g.some(x => x.sourceCountry === "west"),
