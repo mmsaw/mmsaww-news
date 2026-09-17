@@ -22,6 +22,30 @@ const OUT_PATH = new URL("../data/news.json", import.meta.url);
 const STORE_MAX_H = 48;          // keep cards up to 48h old, same as before
 const DEAD_SOURCES = new Set(["WSJ","FT","Bloomberg","Reuters wire","DropsCapital","Banki.ru"]);
 
+// Hard freshness gate for items that carry a REAL date (RSS pubDate, a date in
+// the URL, "2 часа назад" next to the headline). Applies to every source;
+// src.maxAgeDays, where set, tightens it further. Without this, one feed that
+// happens to serve an archive item pushes months-old news into the feed.
+const MAX_ITEM_AGE_H = 72;
+
+// "First seen" ledger, kept OUTSIDE news.json so the client never downloads it.
+// It's what lets an item with a guessed timestamp age out for good: the card
+// itself falls out of the 48h window, but the ledger still remembers when we
+// first laid eyes on it, so re-scraping the same evergreen link tomorrow can't
+// resurrect it as brand-new.
+const SEEN_PATH  = new URL("../data/seen.json", import.meta.url);
+const SEEN_KEEP_H = 24 * 14;
+
+// Publisher names that aggregators glue onto the end of a headline
+// ("Заголовок — Коммерсантъ"). The same article arrives from the publisher's
+// own RSS and from the Google News mirror with two different titles and two
+// completely different links, so both have to normalise to one key.
+const PUBLISHER_SUFFIXES = new Set([
+  "коммерсантъ","коммерсант","ъ","forbes","forbes.ru","forbes russia","рбк","ведомости","тасс","риа новости",
+  "interfax","интерфакс","frank media","frank rg","habr","хабр","m24","москва 24","ярославль","76.ru",
+  "reuters","associated press","ap news","bbc","bbc news","al jazeera","politico","the moscow times","lenta.ru","известия",
+]);
+
 const CATEGORIES = [
   { id:"geopolitics",      label:"Геополитика",         color:"#f87171" },
   { id:"finance",          label:"Финансы",             color:"#34d399" },
@@ -228,16 +252,53 @@ const decodeEntitiesServer = s => (s||"")
 const strip = s => decodeEntitiesServer(s||"").replace(/<[^>]+>/g," ").replace(/\s{2,}/g," ").trim();
 
 function extractDateFromUrl(url) {
-  const m = url.match(/\/(20\d{2})[\/\-](\d{2})[\/\-](\d{2})(?:[\/\-]|$)/);
+  const m = (url || "").match(/\/(20\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[\/\-]|$)/);
   if (!m) return null;
   const [, y, mo, d] = m;
   const mi = parseInt(mo,10), di = parseInt(d,10);
   if (mi < 1 || mi > 12 || di < 1 || di > 31) return null;
-  const dt = new Date(`${y}-${mo}-${d}T12:00:00`);
+  const dt = new Date(`${y}-${String(mi).padStart(2,"0")}-${String(di).padStart(2,"0")}T12:00:00`);
   if (isNaN(dt.getTime())) return null;
   if (dt.getTime() > Date.now() + 86400000) return null;
-  if (dt.getTime() < Date.now() - 30*86400000) return null;
+  // NOTE: an OLD date is deliberately returned rather than discarded. It used
+  // to return null past 30 days, which made the caller fall through to
+  // "no date known" -> a synthetic fresh timestamp: an archive link came out
+  // looking like breaking news. Age is the freshness gate's job, not this
+  // function's — here we only reject dates that aren't dates.
   return dt;
+}
+
+// Is this item too old to publish? Only meaningful for a real date; a guessed
+// timestamp says nothing about the article's age and is handled by the ledger.
+function isStale(date, src) {
+  const maxH = src?.maxAgeDays ? src.maxAgeDays * 24 : MAX_ITEM_AGE_H;
+  return Date.now() - new Date(date).getTime() > maxH * 3600000;
+}
+
+function stripPublisherSuffix(t) {
+  const m = (t || "").match(/^(.*\S)\s*[-–—|]\s*([^-–—|]{2,32})$/);
+  if (!m) return t || "";
+  const tail = m[2].trim().toLowerCase().replace(/\.(ru|com|org|net|eu)$/,"");
+  return PUBLISHER_SUFFIXES.has(tail) ? m[1].trim() : t;
+}
+
+// Identity of a story = its headline, not its link. One article reaches us
+// under several URLs (publisher RSS, the same URL with ?from=top_main_5 from a
+// front-page scrape, a news.google.com redirect) — keying on the link made
+// each of those a separate card.
+function normTitle(t) {
+  return stripPublisherSuffix(t).toLowerCase().replace(/[ё]/g,"е").replace(/[^а-яa-z0-9]/gi,"");
+}
+
+function cardId(title) {
+  const s = normTitle(title) || String(title || "");
+  let h1 = 0x811c9dc5, h2 = 5381;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+    h2 = (Math.imul(h2, 33) + c) >>> 0;
+  }
+  return (h1.toString(36) + "" + h2.toString(36)).slice(0, 16);
 }
 
 // Looks for an actual date/time string near a headline in Jina-scraped
@@ -278,8 +339,33 @@ function findNearbyDate(text, matchIndex, titleLen) {
     return d;
   }
 
+  // Absolute dates — "24.07.2026", "24.07.26", "24 июля" / "24 июля 2026".
+  // Listing pages print these next to older material, and picking them up is
+  // what turns a July article into a knowingly-old item (which the freshness
+  // gate then drops) instead of an undated one that gets stamped "now".
+  m = nearby.match(/\b(\d{1,2})[.](\d{1,2})[.](20\d{2}|\d{2})\b/);
+  if (m) {
+    const y = m[3].length === 2 ? 2000 + parseInt(m[3],10) : parseInt(m[3],10);
+    const d = new Date(y, parseInt(m[2],10) - 1, parseInt(m[1],10), 12, 0, 0);
+    if (!isNaN(d.getTime()) && d.getTime() < Date.now() + 86400000) return d;
+  }
+  m = nearby.match(RU_MONTH_RE);
+  if (m) {
+    const mi = RU_MONTHS.findIndex(st => new RegExp("^" + st, "i").test(m[2]));
+    if (mi >= 0) {
+      const y = m[3] ? parseInt(m[3],10) : new Date().getFullYear();
+      const d = new Date(y, mi, parseInt(m[1],10), 12, 0, 0);
+      // No year printed and the date lands in the future => it's last year's.
+      if (!m[3] && d.getTime() > Date.now() + 86400000) d.setFullYear(y - 1);
+      if (!isNaN(d.getTime()) && d.getTime() < Date.now() + 86400000) return d;
+    }
+  }
+
   return null;
 }
+
+const RU_MONTHS = ["январ","феврал","март","апрел","ма[йя]","июн","июл","август","сентябр","октябр","ноябр","декабр"];
+const RU_MONTH_RE = new RegExp(`\\b(\\d{1,2})\\s+(${RU_MONTHS.join("|")})[а-яё]*(?:\\s+(20\\d{2}))?`, "i");
 
 function tokenSet(s) {
   const clean = s.toLowerCase()
@@ -342,6 +428,12 @@ function parseJinaMarkdown(text, src, targetUrl) {
       .replace(/\s+/g, " ")
       .replace(/^\d{1,2}\s*#{1,6}\s*/, "")
       .replace(/^#{1,6}\s*/, "")
+      // Listing markup often puts the timestamp inside the link text, so the
+      // headline arrives as "09:04 09:04 Собянин: ...". A real headline never
+      // opens with a clock time, and a date is only stripped when it's
+      // duplicated (an obvious markup artefact, not "16 сентября в Москве…").
+      .replace(/^(?:\d{1,2}:\d{2}\s*)+/, "")
+      .replace(new RegExp(`^(\\d{1,2}\\s+(?:${RU_MONTHS.join("|")})[а-яё]*)\\s+\\1\\s+`, "i"), "")
       .trim();
     if (title.length < 20) continue;
     // Reject template-placeholder leakage — some sites' JS-rendered listing
@@ -361,12 +453,26 @@ function parseJinaMarkdown(text, src, targetUrl) {
     // 4 words is rare enough that this is a safe, cheap structural filter.
     if (title.split(/\s+/).length < 4) continue;
     if (seen.has(link)) continue;
-    if (/\/(tag|category|author|search|page|feed|rss)\b/i.test(link)) continue;
+    // Non-article destinations a front-page scrape keeps dragging in: topic
+    // hubs, photo galleries, newsletter sign-ups, ad pages, podcast feeds.
+    // They carry no publish date, so they used to be stamped "now" on every
+    // single run and sat in the feed indefinitely.
+    if (/\/(tag|category|author|search|page|feed|rss|theme|newsletters?|podcasts?|projects|promo)\b/i.test(link)) continue;
+    if (/\/media\/photo\//i.test(link)) continue;
+    // Section roots ("mos.ru/mayor/", "kommersant.ru/ad") — a single
+    // non-numeric path segment is a landing page, never an article. Numeric
+    // single segments ARE articles on some sites (frankmedia.ru/294703), and
+    // deeper paths stay allowed, so real coverage isn't caught by this.
+    try {
+      const segs = new URL(link).pathname.split("/").filter(Boolean);
+      if (segs.length <= 1 && !/^\d+$/.test(segs[0] || "")) continue;
+    } catch { continue; }
     seen.add(link);
     const urlDate = extractDateFromUrl(link);
     const nearbyDate = urlDate ? null : findNearbyDate(text, m.index, rawTitle.length);
     const dateReliable = !!(urlDate || nearbyDate);
     const date = urlDate || nearbyDate || new Date(Date.now() - out.length * 16 * 60000);
+    if (dateReliable && isStale(date, src)) continue;
     out.push({
       title, description: title, link, date: date.toISOString(), dateReliable,
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
@@ -399,10 +505,10 @@ function parseRSSXML(xml, src) {
     const dateReliable = pubDateOk || !!urlDate;
     const date = pubDateOk ? pubDate : (urlDate || new Date());
     if (!title || title.length < 5) continue;
-    if (src.maxAgeDays) {
-      const maxMs = src.maxAgeDays * 24 * 60 * 60 * 1000;
-      if (Date.now() - date.getTime() > maxMs) continue;
-    }
+    // Global gate now, not just for the few sources that had maxAgeDays set:
+    // any feed can serve an archive item, and one that does shouldn't be able
+    // to put July on today's front page.
+    if (dateReliable && isStale(date, src)) continue;
     out.push({
       title, description: desc, link, date: date.toISOString(), dateReliable,
       sourceName: src.name, sourceCountry: src.country, tag: src.tag || null,
@@ -633,14 +739,21 @@ async function main() {
 
   let allItems = results.flat();
 
-  // Global exact-title dedup
-  const seenTitles = new Map();
-  allItems = allItems.filter(it => {
-    const key = it.title.toLowerCase().replace(/[^а-яёa-z0-9]/gi,"").slice(0,60);
-    if (seenTitles.has(key)) return false;
-    seenTitles.set(key, true);
-    return true;
-  });
+  // Global dedup on the NORMALISED headline (publisher suffix stripped, no
+  // 60-char truncation — that truncation is why "…закупок" and
+  // "…закупок - Коммерсантъ" hashed differently and both survived).
+  // Where the same story arrives several times, keep the best copy: a real
+  // publish date beats a guessed one, and a direct publisher link beats a
+  // Google News redirect (which is also an unstable, opaque URL).
+  const variantScore = it =>
+    (it.dateReliable ? 2 : 0) + (/news\.google\.com/i.test(it.link) ? 0 : 1);
+  const bestByTitle = new Map();
+  for (const it of allItems) {
+    const key = normTitle(it.title) || it.link;
+    const prev = bestByTitle.get(key);
+    if (!prev || variantScore(it) > variantScore(prev)) bestByTitle.set(key, it);
+  }
+  allItems = [...bestByTitle.values()];
   console.log(`Total unique items: ${allItems.length}`);
 
   const categorized = allItems.length ? await categorizeWithAI(allItems) : [];
@@ -676,7 +789,10 @@ async function main() {
       // was actually guessing.
       const latest = g.reduce((best,x) => x.date > best.date ? x : best, g[0]);
       cards.push({
-        id: g[0].link.replace(/[^a-z0-9]/gi,"").slice(-24),
+        // Content-based and therefore stable across runs: the same story keeps
+        // the same id no matter which URL variant or which source happened to
+        // represent it this time.
+        id: cardId(g[0].title),
         title: g[0].title,
         description: g[0].description,
         cat, bucket, entity: g.map(x=>x.entity).find(Boolean) || "",
@@ -693,30 +809,96 @@ async function main() {
 
   // Merge with previous run's cards still inside the 48h window (so items
   // stay visible across runs even after they scroll out of "latest fetch")
-  let previous = [];
+  let previous = [], seenLedger = {};
   if (existsSync(OUT_PATH)) {
     try { previous = JSON.parse(await readFile(OUT_PATH, "utf-8")).cards || []; } catch {}
   }
-  const now = new Date().toISOString();
-  const cutoff = Date.now() - STORE_MAX_H * 3600000;
+  if (existsSync(SEEN_PATH)) {
+    try { seenLedger = JSON.parse(await readFile(SEEN_PATH, "utf-8")).seen || {}; } catch {}
+  }
+
+  const now   = new Date().toISOString();
+  const nowMs = Date.now();
+  const cutoff = nowMs - STORE_MAX_H * 3600000;
+
+  // Every headline a card was built from maps to that card's id, so a story
+  // whose group representative changed between runs is still recognised as the
+  // same story rather than entering as a second card.
+  const cardKeys = c => {
+    const ks = [normTitle(c.title || "")];
+    (c.raw || []).forEach(r => ks.push(normTitle(r.title || "")));
+    return [...new Set(ks.filter(k => k.length > 10))];
+  };
+
+  // Re-key carried-over cards to the content-based id. This also performs the
+  // one-time migration off the old link-tail ids — old duplicates of one story
+  // collapse onto a single id right here.
+  for (const c of previous) {
+    c.id = cardId(c.title);
+    const fs = c.firstSeenAt || c.date || now;
+    if (!seenLedger[c.id] || seenLedger[c.id] > fs) seenLedger[c.id] = fs;
+  }
+
+  const keyToId = new Map();
   const byId = new Map();
-  previous
-    .filter(c => new Date(c.date).getTime() > cutoff)
-    .filter(c => !(c.sources||[]).some(s => DEAD_SOURCES.has(s)))
-    .forEach(c => byId.set(c.id, c));
-  cards.forEach(c => {
-    // firstSeenAt marks when THIS card first entered our system — distinct
-    // from the article's own publish date. Preserve it across runs for
-    // cards we've already seen; only stamp genuinely new ones with "now".
-    // The client sorts by this so freshly-collected items always land at
-    // the top, instead of an article's original date (which can be hours
-    // old by the time Jina/RSS actually surfaces it to us) burying it
-    // beneath already-seen cards.
+  for (const c of previous) {
     const existing = byId.get(c.id);
-    c.firstSeenAt = existing?.firstSeenAt || now;
+    if (existing) {
+      existing.sources = [...new Set([...(existing.sources||[]), ...(c.sources||[])])];
+      if (!existing.title_ru && c.title_ru) existing.title_ru = c.title_ru;
+      if (!existing.description_ru && c.description_ru) existing.description_ru = c.description_ru;
+      continue;
+    }
+    c.firstSeenAt = seenLedger[c.id] || c.firstSeenAt || now;
     byId.set(c.id, c);
-  });
-  const merged = [...byId.values()].sort((a,b) => new Date(b.firstSeenAt) - new Date(a.firstSeenAt));
+    cardKeys(c).forEach(k => { if (!keyToId.has(k)) keyToId.set(k, c.id); });
+  }
+
+  for (const c of cards) {
+    const known = cardKeys(c).map(k => keyToId.get(k)).find(Boolean);
+    if (known) c.id = known;
+    const prev = byId.get(c.id);
+    // firstSeenAt marks when THIS story first entered our system — distinct
+    // from the article's own publish date. The ledger keeps it even after the
+    // card itself has aged out, so a permanent front-page link can't come
+    // back as "new" tomorrow.
+    c.firstSeenAt = seenLedger[c.id] || prev?.firstSeenAt || now;
+    if (prev) {
+      c.sources = [...new Set([...(prev.sources||[]), ...(c.sources||[])])];
+      if (!c.title_ru && prev.title_ru) c.title_ru = prev.title_ru;
+      if (!c.description_ru && prev.description_ru) c.description_ru = prev.description_ru;
+      if (prev.dateReliable && !c.dateReliable) { c.date = prev.date; c.dateReliable = true; }
+    }
+    // A guessed timestamp must never be refreshed on every run — that is what
+    // kept evergreen links (and genuinely old articles pinned to a front page)
+    // permanently "minutes old" and immune to the 48h window. Pin it to when we
+    // first saw the item instead, so it ages like everything else.
+    if (!c.dateReliable) c.date = c.firstSeenAt;
+    seenLedger[c.id] = c.firstSeenAt;
+    byId.set(c.id, c);
+    cardKeys(c).forEach(k => { if (!keyToId.has(k)) keyToId.set(k, c.id); });
+  }
+
+  // Final safety pass: collapse anything still sharing a headline (oldest
+  // sighting wins, so ordering stays stable), then age out on a date that is
+  // now trustworthy for every card — real where we know it, first-seen where
+  // we don't.
+  const collapsed = new Map();
+  for (const c of [...byId.values()].sort((a,b) => new Date(a.firstSeenAt) - new Date(b.firstSeenAt))) {
+    const keys = cardKeys(c);
+    if (!keys.length) keys.push("id:" + c.id);   // title too short to key on
+    const hit = keys.map(k => collapsed.get(k)).find(Boolean);
+    if (hit) {
+      hit.sources = [...new Set([...(hit.sources||[]), ...(c.sources||[])])];
+      continue;
+    }
+    keys.forEach(k => collapsed.set(k, c));
+  }
+  const merged = [...new Set(collapsed.values())]
+    .filter(c => !(c.sources||[]).some(s => DEAD_SOURCES.has(s)))
+    .filter(c => new Date(c.date).getTime() > cutoff)
+    .sort((a,b) => new Date(b.firstSeenAt) - new Date(a.firstSeenAt));
+  console.log(`Merged: ${merged.length} cards (from ${previous.length} previous + ${cards.length} fresh)`);
 
   // Digests run BEFORE translation — only 5 Groq calls total, and they get
   // priority on the rate-limit budget while it's freshest. Translation
@@ -778,7 +960,18 @@ async function main() {
 
   await mkdir(new URL("../data/", import.meta.url), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(output, null, 0));
-  console.log(`Wrote ${merged.length} cards to data/news.json`);
+
+  // Ledger: keep entries for two weeks — long enough that an evergreen link
+  // can't sneak back in as new, short enough that the file stays small. It is
+  // written separately so the client's download doesn't grow.
+  const seenCutoff = nowMs - SEEN_KEEP_H * 3600000;
+  const prunedSeen = {};
+  for (const [id, ts] of Object.entries(seenLedger)) {
+    const t = new Date(ts).getTime();
+    if (!isNaN(t) && t > seenCutoff) prunedSeen[id] = ts;
+  }
+  await writeFile(SEEN_PATH, JSON.stringify({ v: 1, updatedAt: now, seen: prunedSeen }, null, 0));
+  console.log(`Wrote ${merged.length} cards to data/news.json (ledger: ${Object.keys(prunedSeen).length} ids)`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
